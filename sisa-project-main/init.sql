@@ -1,5 +1,3 @@
--- Database: SISA
-
 CREATE DATABASE IF NOT EXISTS sisa;
 USE sisa;
 
@@ -11,13 +9,16 @@ CREATE TABLE occupation (
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Usuários
+-- Usuários (CORRIGIDO)
 CREATE TABLE user (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    occupation_id ENUM('Administrador', 'Colaborador', 'Professor')
+    occupation_id INT, -- MUDANÇA: Agora é INT em vez de ENUM
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (occupation_id) REFERENCES occupation(id)
 );
 
 -- Permissões configuráveis por ocupação
@@ -52,6 +53,8 @@ CREATE TABLE subjects (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     professor_id INT,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (professor_id) REFERENCES user(id)
 );
 
@@ -75,3 +78,7 @@ INSERT INTO occupation (name) VALUES
     ('Administrador'),
     ('Colaborador'),
     ('Professor');
+
+-- Inserir usuário administrador padrão (senha: admin123)
+INSERT INTO user (name, email, password, occupation_id) VALUES
+    ('Admin', 'admin@sisa.com', '$2a$10$rQJ5XGw2B9rXnP2jUzM5qe8tYwX8K8lJTHLQT8t9YL8f8kM5aZ7D6', 1);
