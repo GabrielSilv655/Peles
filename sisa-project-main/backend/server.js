@@ -86,3 +86,5 @@ const startServer = (port) => {
     }
   });
 };
+
+startServer(PORT_HTTP);
