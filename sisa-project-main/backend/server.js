@@ -16,29 +16,16 @@ const User = require("./models/User");
 dotenv.config();
 const app = express();
 
-const PORT_HTTP = Number(process.env.PORT) || 5000;
-const PORT_HTTPS = Number(process.env.HTTPS_PORT) || 5001;
-
-if (process.env.NODE_ENV === 'production') {
-  // Em produção, o HTTPS será gerenciado por um proxy reverso (como Nginx)
-  app.listen(PORT_HTTP, () => {
-    console.log(`Server running in production at http://localhost:${PORT_HTTP}`);
-  });
-} else {
-  // Em desenvolvimento, usamos HTTPS local com certificados autoassinados
-  const key = fs.readFileSync('./cert/key.pem');
-  const cert = fs.readFileSync('./cert/cert.pem');
-
-  https.createServer({ key, cert }, app).listen(PORT_HTTPS, () => {
-    console.log(`Dev server running at https://localhost:${PORT_HTTPS}`);
-  });
-}
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://seu-frontend.vercel.app';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://nome-do-seu-backend.onrender.com';
 
 app.use(cors({
   origin: [
+    FRONTEND_URL,
+    BACKEND_URL,
+    'http://localhost:3000',
     'https://localhost:3000',
-    'https://127.0.0.1:3000',
-    'https://peles.onrender.com'
+    'https://127.0.0.1:3000'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -107,5 +94,21 @@ async function createDefaultAdmin() {
 }
 
 createDefaultAdmin();
+
+if (process.env.NODE_ENV === 'production') {
+  // Em produção, Render.com já faz HTTPS, então só use HTTP normal
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running in production at http://0.0.0.0:${PORT}`);
+  });
+} else {
+  // Em desenvolvimento, usamos HTTPS local com certificados autoassinados
+  const key = fs.readFileSync('./cert/key.pem');
+  const cert = fs.readFileSync('./cert/cert.pem');
+
+  https.createServer({ key, cert }, app).listen(PORT_HTTPS, () => {
+    console.log(`Dev server running at https://localhost:${PORT_HTTPS}`);
+  });
+}
 
 startServer(PORT_HTTP);
