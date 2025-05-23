@@ -7,22 +7,42 @@ const userRoutes = require("./routes/userRoutes");
 const studentsRoutes = require("./routes/studentsRoute");
 const subjectRoutes = require("./routes/subjectRoutes");
 const documentRoutes = require("./routes/documentRoutes");
-const http = require('http'); // Usar http para a plataforma
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
 
 dotenv.config();
 const app = express();
 
-// A plataforma fornecerá process.env.PORT
-const PORT = process.env.PORT || 5000;
+const PORT_HTTP = process.env.PORT || 5000;
+const PORT_HTTPS = process.env.HTTPS_PORT || 5001;
 
-// Configuração CORS
-// Certifique-se de adicionar a URL do seu frontend no Render/Railway aqui
+if (process.env.NODE_ENV === 'production') {
+  // Em produção, o HTTPS será gerenciado por um proxy reverso (como Nginx)
+  app.listen(PORT_HTTP, () => {
+    console.log(`Server running in production at http://localhost:${PORT_HTTP}`);
+  });
+} else {
+  // Em desenvolvimento, usamos HTTPS local com certificados autoassinados
+  const key = fs.readFileSync('./cert/key.pem');
+  const cert = fs.readFileSync('./cert/cert.pem');
+
+  https.createServer({ key, cert }, app).listen(PORT_HTTPS, () => {
+    console.log(`Dev server running at https://localhost:${PORT_HTTPS}`);
+  });
+}
+
+const options = {
+  key: fs.readFileSync('./cert/key.pem'),
+  cert: fs.readFileSync('./cert/cert.pem')
+};
+
+// Configuração CORS mais detalhada
 app.use(cors({
   origin: [
-    'https://localhost:3000', // Para desenvolvimento local
-    'https://127.0.0.1:3000', // Para desenvolvimento local
-    // Ex: 'https://seu-frontend.onrender.com',
-    // process.env.FRONTEND_URL // Ou use uma variável de ambiente
+    'https://localhost:3000',
+    'https://127.0.0.1:3000',
+    'https://peles.onrender.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -31,38 +51,42 @@ app.use(cors({
 
 app.use(bodyParser.json({ limit: "10mb" }));
 
-// Log de todas as requisições (opcional, pode ser verboso)
+// Log de todas as requisições
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
   next();
 });
 
-// Rotas da API
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/students", studentsRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/documents", documentRoutes);
 
-// Rotas básicas
 app.get("/", (req, res) => {
   res.send("SISA API is running.");
 });
 
+// Rota de teste
 app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
 });
 
-// Iniciar o servidor HTTP
-// A plataforma (Render/Railway) gerencia o HTTPS externamente
-const server = http.createServer(app);
+const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`A aplicação deve estar acessível pela URL da plataforma (HTTPS).`);
-  console.log(`Base URL da API: /api`);
-  console.log(`Endpoint de teste: /api/test`);
-}).on('error', (err) => {
-  console.error('Falha ao iniciar o servidor:', err);
-  process.exit(1); // Importante para sinalizar erro à plataforma
-});
+// Função para tentar iniciar o servidor em diferentes portas
+const startServer = (port) => {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`API URL: https://localhost:${port}/api`);
+    console.log(`Test URL: https://localhost:${port}/api/test`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Porta ${port} em uso, tentando porta ${port + 1}`);
+      startServer(port + 1);
+    } else {
+      console.error('Erro ao iniciar o servidor:', err);
+    }
+  });
+};
