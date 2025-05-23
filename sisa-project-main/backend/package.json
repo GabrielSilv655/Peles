@@ -13,7 +13,8 @@
     "mysql2": "^3.14.1",
     "sequelize": "^6.37.7"
   },
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   }
 }
