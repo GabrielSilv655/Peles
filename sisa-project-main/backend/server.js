@@ -14,8 +14,8 @@ const fs = require('fs');
 dotenv.config();
 const app = express();
 
-const PORT_HTTP = process.env.PORT || 5000;
-const PORT_HTTPS = process.env.HTTPS_PORT || 5001;
+const PORT_HTTP = Number(process.env.PORT) || 5000;
+const PORT_HTTPS = Number(process.env.HTTPS_PORT) || 5001;
 
 if (process.env.NODE_ENV === 'production') {
   // Em produção, o HTTPS será gerenciado por um proxy reverso (como Nginx)
@@ -71,14 +71,15 @@ const PORT = process.env.PORT || 5000;
 
 // Função para tentar iniciar o servidor em diferentes portas
 const startServer = (port) => {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    console.log(`API URL: https://localhost:${port}/api`);
-    console.log(`Test URL: https://localhost:${port}/api/test`);
+  const portNum = Number(port);
+  app.listen(portNum, () => {
+    console.log(`Server running on port ${portNum}`);
+    console.log(`API URL: https://localhost:${portNum}/api`);
+    console.log(`Test URL: https://localhost:${portNum}/api/test`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.log(`Porta ${port} em uso, tentando porta ${port + 1}`);
-      startServer(port + 1);
+      console.log(`Porta ${portNum} em uso, tentando porta ${portNum + 1}`);
+      startServer(portNum + 1);
     } else {
       console.error('Erro ao iniciar o servidor:', err);
     }
