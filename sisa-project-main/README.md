@@ -99,3 +99,12 @@ npm start
 
 ---
 
+## 👤 Usuário padrão para acesso inicial
+
+- **Email:** `admin@sisa.com`
+- **Senha:** `admin123`
+
+Use essas credenciais para acessar o sistema pela primeira vez.
+
+---
+

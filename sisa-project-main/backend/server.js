@@ -10,6 +10,8 @@ const documentRoutes = require("./routes/documentRoutes");
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
+const bcrypt = require("bcryptjs");
+const User = require("./models/User");
 
 dotenv.config();
 const app = express();
@@ -85,5 +87,25 @@ const startServer = (port) => {
     }
   });
 };
+
+async function createDefaultAdmin() {
+  const adminEmail = "admin@sisa.com";
+  const adminPassword = "admin123";
+  const adminOccupation = 1; // 1 = Administrador
+
+  const existing = await User.findOne({ where: { email: adminEmail } });
+  if (!existing) {
+    const hash = await bcrypt.hash(adminPassword, 10);
+    await User.create({
+      name: "Administrador",
+      email: adminEmail,
+      password: hash,
+      occupation_id: adminOccupation
+    });
+    console.log("Usuário admin padrão criado: admin@sisa.com / admin123");
+  }
+}
+
+createDefaultAdmin();
 
 startServer(PORT_HTTP);
