@@ -2,7 +2,7 @@ import axios from "axios";
 
 const base_url = process.env.NODE_ENV === "development" 
   ? "http://localhost:5000" // Alterado para HTTP
-  : "https://sisa.up.railway.app:8080"; // Updated production URL
+  : "https://sisa.up.railway.app:8080"; // Correct backend URL
 
 const API = axios.create({
   baseURL: base_url,

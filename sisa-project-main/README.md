@@ -85,7 +85,7 @@ REACT_APP_API=http://localhost:5000/api
 npm start
 ```
 
-> O front-end estará disponível em: https://sisa-project.up.railway.app:5000
+> O front-end estará disponível em: https://sisa-project.up.railway.app:8080
 
 ---
 
