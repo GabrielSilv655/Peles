@@ -62,7 +62,7 @@ CREATE DATABASE sisa;
 npm start
 ```
 
-> O back-end estará rodando em: https://sisa.up.railway.app:8080
+> O back-end estará rodando em: http://localhost:5000/
 
 ---
 
