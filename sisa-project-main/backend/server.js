@@ -49,15 +49,14 @@ if (!fs.existsSync(uploadsDir)) {
 // Configuração CORS mais detalhada
 if (process.env.NODE_ENV === 'production') {
   app.use(cors({
-    origin: ['https://localhost:3000', 'http://localhost:3000',
-      'https://amused-friendship-production.up.railway.app'],
+    origin: ['https://sisa-project.up.railway.app'], // Frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   }));
 } else {  
   app.use(cors({
-    origin: ['https://localhost:3000', 'http://localhost:3000'],
+    origin: ['http://localhost:3000'], // Local frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
