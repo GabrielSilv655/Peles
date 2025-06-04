@@ -1,0 +1,33 @@
+{
+  "name": "sisa-frontend",
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cpf-cnpj-validator": "^1.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "^5.0.1",
+    "serve": "^14.0.1"
+  },
+  "scripts": {
+    "start": "serve -s build",
+    "dev": "react-scripts start",
+    "build": "react-scripts build",
+    "deploy": "npm run build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
