@@ -33,7 +33,7 @@ router.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-
+    console.log('Generated token:', token); // Log para depuração
     res.json({ token, user });
   } catch (error) {
     console.error('Login error:', error);
