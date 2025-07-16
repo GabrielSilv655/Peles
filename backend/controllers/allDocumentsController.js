@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const mammoth = require('mammoth');
 const multer = require('multer');
+const PDFEnhancer = require('../utils/pdfEnhancer');
 
 // Configuração do multer para documentos gerais
 const storage = multer.diskStorage({
@@ -273,12 +274,12 @@ const downloadDocument = async (req, res) => {
   }
 };
 
-// Função para gerar PDF do documento
+// Função para gerar PDF do documento com máxima robustez
 const generatePDFFromDocument = async (document, res) => {
   let browser = null;
   
   try {
-    console.log('Gerando PDF do documento:', document.name);
+    console.log('Gerando PDF robusto do documento:', document.name);
     
     // Ler arquivo como buffer
     const buffer = fs.readFileSync(document.file_path);
@@ -288,20 +289,21 @@ const generatePDFFromDocument = async (document, res) => {
       throw new Error('Arquivo não é um DOCX válido');
     }
 
-    // Converter DOCX para HTML
-    console.log('Convertendo DOCX para HTML...');
+    // Converter DOCX para HTML usando configurações ultra-robustas do PDFEnhancer
+    console.log('Convertendo DOCX para HTML com configurações ultra-robustas...');
     const result = await mammoth.convertToHtml({ 
       buffer: buffer,
-      options: {
-        includeDefaultStyleMap: true,
-        includeEmbeddedStyleMap: true
-      }
+      options: PDFEnhancer.getMammothAdvancedOptions()
     });
     
     let html = result.value;
     console.log('HTML gerado, tamanho:', html.length);
+    console.log('Mensagens de conversão:', result.messages);
 
-    // Criar HTML completo para PDF com CSS otimizado para preservar layout E bordas
+    // Processar HTML para melhorar a detecção de elementos visuais complexos
+    html = PDFEnhancer.processHtmlForComplexElements(html);
+
+    // Criar HTML completo para PDF com CSS ultra-robusto
     const fullHtml = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -310,117 +312,7 @@ const generatePDFFromDocument = async (document, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${document.name}</title>
         <style>
-          @page {
-            margin: 2cm;
-            size: A4;
-          }
-          * {
-            box-sizing: border-box;
-          }
-          body { 
-            font-family: 'Times New Roman', serif; 
-            line-height: 1.4; 
-            margin: 0;
-            padding: 0;
-            color: #000;
-            font-size: 12pt;
-            background: white;
-          }
-          img { 
-            max-width: 100%; 
-            height: auto; 
-            display: block;
-            margin: 10px auto;
-          }
-          
-          /* REGRAS PARA MANTER TABELAS UNIDAS E COM BORDAS */
-          table { 
-            border-collapse: collapse !important; 
-            width: 100% !important; 
-            margin: 5px 0 !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            border: 1px solid #000 !important;
-          }
-          
-          /* Forçar TODAS as tabelas a ficarem na mesma página */
-          table, table * {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          
-          /* Células da tabela com bordas visíveis */
-          td, th {
-            border: 1px solid #000 !important; 
-            padding: 6px !important; 
-            text-align: left !important;
-            vertical-align: top !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          
-          /* Cabeçalho da tabela */
-          th { 
-            background-color: #f5f5f5 !important; 
-            font-weight: bold !important;
-            border: 1px solid #000 !important;
-          }
-          
-          /* Linhas da tabela */
-          tr {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            border: 1px solid #000 !important;
-          }
-          
-          /* Cabeçalho e corpo da tabela */
-          thead, thead tr, thead th {
-            page-break-inside: avoid !important;
-            page-break-after: avoid !important;
-            break-inside: avoid !important;
-            border: 1px solid #000 !important;
-          }
-          
-          tbody, tbody tr, tbody td {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            border: 1px solid #000 !important;
-          }
-          
-          /* Remover espaçamentos desnecessários */
-          p + table, div + table, br + table {
-            margin-top: 2px !important;
-          }
-          
-          table + p, table + div, table + br {
-            margin-bottom: 2px !important;
-          }
-          
-          p { 
-            margin: 6px 0; 
-            text-align: justify;
-          }
-          h1, h2, h3, h4, h5, h6 { 
-            margin: 15px 0 8px 0; 
-            page-break-after: avoid;
-            color: #000;
-          }
-          h1 { font-size: 18pt; font-weight: bold; }
-          h2 { font-size: 16pt; font-weight: bold; }
-          h3 { font-size: 14pt; font-weight: bold; }
-          ul, ol { 
-            margin: 8px 0; 
-            padding-left: 25px; 
-          }
-          li { 
-            margin: 2px 0; 
-          }
-          strong, b { 
-            font-weight: bold; 
-          }
-          em, i { 
-            font-style: italic; 
-          }
+          ${PDFEnhancer.getUltraRobustCSS(document.name)}
         </style>
       </head>
       <body>
@@ -429,122 +321,46 @@ const generatePDFFromDocument = async (document, res) => {
       </html>
     `;
 
-    // Usar puppeteer para gerar PDF
-    console.log('Iniciando Puppeteer...');
+    // Usar puppeteer com configurações ultra-avançadas
+    console.log('Iniciando Puppeteer com configurações ultra-robustas...');
     const puppeteer = require('puppeteer');
     
-    browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ]
-    });
+    browser = await puppeteer.launch(PDFEnhancer.getPuppeteerAdvancedConfig());
     
     const page = await browser.newPage();
     
-    // Configurar página
-    await page.setViewport({ width: 1200, height: 800 });
+    // Configurar página com resolução ultra-alta para máxima qualidade
+    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
+    
+    // Interceptar requests para melhorar carregamento de recursos
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if(req.resourceType() == 'stylesheet' || req.resourceType() == 'font'){
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
     
     console.log('Carregando HTML na página...');
     await page.setContent(fullHtml, { 
       waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 30000
+      timeout: 120000
     });
     
-    // Aguardar um pouco para garantir que tudo carregou
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Aguardar carregamento completo
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Executar JavaScript para otimizar tabelas (preservar layout + garantir bordas)
-    await page.evaluate(() => {
-      console.log('Otimizando tabelas para preservar layout e bordas...');
-      
-      const tables = document.querySelectorAll('table');
-      console.log(`Encontradas ${tables.length} tabelas para otimizar`);
-      
-      tables.forEach((table, index) => {
-        console.log(`Processando tabela ${index + 1}...`);
-        
-        // FORÇAR propriedades de não quebra
-        table.style.setProperty('page-break-inside', 'avoid', 'important');
-        table.style.setProperty('break-inside', 'avoid', 'important');
-        table.style.setProperty('border-collapse', 'collapse', 'important');
-        table.style.setProperty('border', '1px solid #000', 'important');
-        table.style.setProperty('margin', '5px 0', 'important');
-        
-        // Garantir bordas em todas as células
-        const cells = table.querySelectorAll('td, th');
-        cells.forEach(cell => {
-          cell.style.setProperty('border', '1px solid #000', 'important');
-          cell.style.setProperty('padding', '6px', 'important');
-          cell.style.setProperty('page-break-inside', 'avoid', 'important');
-          cell.style.setProperty('break-inside', 'avoid', 'important');
-        });
-        
-        // Garantir bordas em todas as linhas
-        const rows = table.querySelectorAll('tr');
-        rows.forEach(row => {
-          row.style.setProperty('border', '1px solid #000', 'important');
-          row.style.setProperty('page-break-inside', 'avoid', 'important');
-          row.style.setProperty('break-inside', 'avoid', 'important');
-        });
-        
-        // Aplicar a TODOS os elementos filhos da tabela
-        const allTableElements = table.querySelectorAll('*');
-        allTableElements.forEach(element => {
-          element.style.setProperty('page-break-inside', 'avoid', 'important');
-          element.style.setProperty('break-inside', 'avoid', 'important');
-        });
-        
-        // Remover espaços vazios antes da tabela (mas preservar conteúdo)
-        let prevElement = table.previousElementSibling;
-        while (prevElement) {
-          if (prevElement.tagName === 'P' && (!prevElement.textContent || prevElement.textContent.trim() === '')) {
-            const toRemove = prevElement;
-            prevElement = prevElement.previousElementSibling;
-            toRemove.remove();
-          } else if (prevElement.tagName === 'BR') {
-            const toRemove = prevElement;
-            prevElement = prevElement.previousElementSibling;
-            toRemove.remove();
-          } else {
-            prevElement.style.setProperty('margin-bottom', '2px', 'important');
-            break;
-          }
-        }
-        
-        console.log(`Tabela ${index + 1} otimizada com bordas preservadas`);
-      });
-      
-      console.log('Otimização de tabelas concluída');
-    });
+    // Executar JavaScript ultra-avançado para otimização
+    await page.evaluate(PDFEnhancer.getPageOptimizationScript());
     
-    // Aguardar mais um pouco após as modificações
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Aguardar após otimizações
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    console.log('Gerando PDF...');
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      margin: {
-        top: '2cm',
-        right: '2cm',
-        bottom: '2cm',
-        left: '2cm'
-      },
-      printBackground: true,
-      preferCSSPageSize: true,
-      displayHeaderFooter: false,
-      timeout: 30000
-    });
+    console.log('Gerando PDF com configurações ultra-avançadas...');
+    const pdfBuffer = await page.pdf(PDFEnhancer.getPDFAdvancedOptions());
 
-    console.log('PDF gerado com sucesso! Tamanho:', pdfBuffer.length, 'bytes');
+    console.log('PDF robusto gerado com sucesso! Tamanho:', pdfBuffer.length, 'bytes');
 
     // Fechar browser
     await browser.close();
@@ -562,10 +378,10 @@ const generatePDFFromDocument = async (document, res) => {
     res.setHeader('Content-Length', pdfBuffer.length);
     res.end(pdfBuffer, 'binary');
     
-    console.log('Download PDF concluído com sucesso');
+    console.log('Download PDF robusto concluído com sucesso');
     
   } catch (pdfError) {
-    console.error('Erro detalhado ao gerar PDF:', pdfError);
+    console.error('Erro detalhado ao gerar PDF robusto:', pdfError);
     
     // Fechar browser se ainda estiver aberto
     if (browser) {
@@ -577,10 +393,36 @@ const generatePDFFromDocument = async (document, res) => {
     }
     
     res.status(500).json({ 
-      message: 'Erro ao gerar PDF. Tente o formato DOCX.',
+      message: 'Erro ao gerar PDF robusto. Tente o formato DOCX.',
       error: pdfError.message 
     });
   }
+};
+
+// Função auxiliar para processar HTML e detectar elementos visuais
+const processHtmlForVisualElements = (html) => {
+  console.log('Processando HTML para detectar elementos visuais...');
+  
+  // Detectar e marcar possíveis elementos de desenho do Google Docs
+  html = html.replace(/<div[^>]*class="[^"]*drawing[^"]*"[^>]*>/gi, '<div class="docx-drawing">');
+  html = html.replace(/<div[^>]*class="[^"]*shape[^"]*"[^>]*>/gi, '<div class="docx-shape">');
+  html = html.replace(/<div[^>]*class="[^"]*background[^"]*"[^>]*>/gi, '<div class="docx-background">');
+  
+  // Detectar elementos canvas ou SVG que podem ser desenhos
+  html = html.replace(/<canvas[^>]*>/gi, '<div class="docx-drawing" data-original="canvas">');
+  html = html.replace(/<\/canvas>/gi, '</div>');
+  html = html.replace(/<svg[^>]*>/gi, '<div class="docx-drawing" data-original="svg">');
+  html = html.replace(/<\/svg>/gi, '</div>');
+  
+  // Detectar elementos com data attributes do Google Docs
+  html = html.replace(/data-google-docs-drawing/gi, 'class="docx-drawing" data-google-docs-drawing');
+  html = html.replace(/data-drawing/gi, 'class="docx-drawing" data-drawing');
+  
+  // Preservar elementos com background-image
+  html = html.replace(/style="([^"]*background-image[^"]*)"/gi, 'style="$1" class="has-background-image"');
+  
+  console.log('Processamento de elementos visuais concluído');
+  return html;
 };
 
 module.exports = {
