@@ -301,7 +301,7 @@ const generatePDFFromDocument = async (document, res) => {
     let html = result.value;
     console.log('HTML gerado, tamanho:', html.length);
 
-    // Criar HTML completo para PDF
+    // Criar HTML completo para PDF com CSS otimizado para preservar layout E bordas
     const fullHtml = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -319,7 +319,7 @@ const generatePDFFromDocument = async (document, res) => {
           }
           body { 
             font-family: 'Times New Roman', serif; 
-            line-height: 1.5; 
+            line-height: 1.4; 
             margin: 0;
             padding: 0;
             color: #000;
@@ -332,45 +332,76 @@ const generatePDFFromDocument = async (document, res) => {
             display: block;
             margin: 10px auto;
           }
+          
+          /* REGRAS PARA MANTER TABELAS UNIDAS E COM BORDAS */
           table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin: 15px 0;
-            page-break-inside: auto;
+            border-collapse: collapse !important; 
+            width: 100% !important; 
+            margin: 5px 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #000 !important;
           }
           
-          /* Evitar quebra de página apenas no cabeçalho da tabela */
-          thead, thead tr, thead th {
-            page-break-inside: avoid;
-            page-break-after: avoid;
+          /* Forçar TODAS as tabelas a ficarem na mesma página */
+          table, table * {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
           
-          /* Permitir quebra no corpo da tabela, mas evitar órfãs */
-          tbody tr {
-            page-break-inside: avoid;
+          /* Células da tabela com bordas visíveis */
+          td, th {
+            border: 1px solid #000 !important; 
+            padding: 6px !important; 
+            text-align: left !important;
+            vertical-align: top !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
           
-          /* Evitar que uma linha fique sozinha no final/início da página */
-          tr {
-            orphans: 2;
-            widows: 2;
-          }
-          td, th { 
-            border: 1px solid #000; 
-            padding: 8px; 
-            text-align: left;
-            vertical-align: top;
-          }
+          /* Cabeçalho da tabela */
           th { 
-            background-color: #f5f5f5; 
-            font-weight: bold;
+            background-color: #f5f5f5 !important; 
+            font-weight: bold !important;
+            border: 1px solid #000 !important;
           }
+          
+          /* Linhas da tabela */
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #000 !important;
+          }
+          
+          /* Cabeçalho e corpo da tabela */
+          thead, thead tr, thead th {
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #000 !important;
+          }
+          
+          tbody, tbody tr, tbody td {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            border: 1px solid #000 !important;
+          }
+          
+          /* Remover espaçamentos desnecessários */
+          p + table, div + table, br + table {
+            margin-top: 2px !important;
+          }
+          
+          table + p, table + div, table + br {
+            margin-bottom: 2px !important;
+          }
+          
           p { 
-            margin: 8px 0; 
+            margin: 6px 0; 
             text-align: justify;
           }
           h1, h2, h3, h4, h5, h6 { 
-            margin: 20px 0 10px 0; 
+            margin: 15px 0 8px 0; 
             page-break-after: avoid;
             color: #000;
           }
@@ -378,20 +409,17 @@ const generatePDFFromDocument = async (document, res) => {
           h2 { font-size: 16pt; font-weight: bold; }
           h3 { font-size: 14pt; font-weight: bold; }
           ul, ol { 
-            margin: 10px 0; 
+            margin: 8px 0; 
             padding-left: 25px; 
           }
           li { 
-            margin: 3px 0; 
+            margin: 2px 0; 
           }
           strong, b { 
             font-weight: bold; 
           }
           em, i { 
             font-style: italic; 
-          }
-          .page-break { 
-            page-break-before: always; 
           }
         </style>
       </head>
@@ -433,6 +461,73 @@ const generatePDFFromDocument = async (document, res) => {
     
     // Aguardar um pouco para garantir que tudo carregou
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Executar JavaScript para otimizar tabelas (preservar layout + garantir bordas)
+    await page.evaluate(() => {
+      console.log('Otimizando tabelas para preservar layout e bordas...');
+      
+      const tables = document.querySelectorAll('table');
+      console.log(`Encontradas ${tables.length} tabelas para otimizar`);
+      
+      tables.forEach((table, index) => {
+        console.log(`Processando tabela ${index + 1}...`);
+        
+        // FORÇAR propriedades de não quebra
+        table.style.setProperty('page-break-inside', 'avoid', 'important');
+        table.style.setProperty('break-inside', 'avoid', 'important');
+        table.style.setProperty('border-collapse', 'collapse', 'important');
+        table.style.setProperty('border', '1px solid #000', 'important');
+        table.style.setProperty('margin', '5px 0', 'important');
+        
+        // Garantir bordas em todas as células
+        const cells = table.querySelectorAll('td, th');
+        cells.forEach(cell => {
+          cell.style.setProperty('border', '1px solid #000', 'important');
+          cell.style.setProperty('padding', '6px', 'important');
+          cell.style.setProperty('page-break-inside', 'avoid', 'important');
+          cell.style.setProperty('break-inside', 'avoid', 'important');
+        });
+        
+        // Garantir bordas em todas as linhas
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+          row.style.setProperty('border', '1px solid #000', 'important');
+          row.style.setProperty('page-break-inside', 'avoid', 'important');
+          row.style.setProperty('break-inside', 'avoid', 'important');
+        });
+        
+        // Aplicar a TODOS os elementos filhos da tabela
+        const allTableElements = table.querySelectorAll('*');
+        allTableElements.forEach(element => {
+          element.style.setProperty('page-break-inside', 'avoid', 'important');
+          element.style.setProperty('break-inside', 'avoid', 'important');
+        });
+        
+        // Remover espaços vazios antes da tabela (mas preservar conteúdo)
+        let prevElement = table.previousElementSibling;
+        while (prevElement) {
+          if (prevElement.tagName === 'P' && (!prevElement.textContent || prevElement.textContent.trim() === '')) {
+            const toRemove = prevElement;
+            prevElement = prevElement.previousElementSibling;
+            toRemove.remove();
+          } else if (prevElement.tagName === 'BR') {
+            const toRemove = prevElement;
+            prevElement = prevElement.previousElementSibling;
+            toRemove.remove();
+          } else {
+            prevElement.style.setProperty('margin-bottom', '2px', 'important');
+            break;
+          }
+        }
+        
+        console.log(`Tabela ${index + 1} otimizada com bordas preservadas`);
+      });
+      
+      console.log('Otimização de tabelas concluída');
+    });
+    
+    // Aguardar mais um pouco após as modificações
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     console.log('Gerando PDF...');
     const pdfBuffer = await page.pdf({
