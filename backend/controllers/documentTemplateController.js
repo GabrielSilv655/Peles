@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const mammoth = require('mammoth');
-const PDFEnhancer = require('../utils/pdfEnhancer');
+const PDFDocument = require('pdfkit');
 
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -66,136 +66,42 @@ async function extractPlaceholders(filePath) {
     }
 }
 
-// Função para gerar PDF robusto usando Puppeteer
+// Função para gerar PDF simples
 async function generatePDF(templatePath, fields) {
-    let browser = null;
-    let tempDocxPath = null;
-    
-    try {
-        console.log('Gerando PDF robusto do template:', templatePath);
-        
-        // Ler o template DOCX
-        const PizZip = require('pizzip');
-        const Docxtemplater = require('docxtemplater');
-        
-        const content = fs.readFileSync(templatePath, 'binary');
-        const zip = new PizZip(content);
-        const doc = new Docxtemplater(zip, {
-            paragraphLoop: true,
-            linebreaks: true,
-            delimiters: {
-                start: '{{',
-                end: '}}'
-            }
-        });
-
-        // Substituir placeholders
-        doc.render(fields);
-
-        // Gerar DOCX temporário
-        const buf = doc.getZip().generate({ type: 'nodebuffer' });
-        
-        tempDocxPath = path.join(__dirname, '../temp', `temp-${Date.now()}.docx`);
-        const tempDir = path.dirname(tempDocxPath);
-        
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument();
+            const chunks = [];
+            
+            doc.on('data', chunk => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            
+            // Extrair texto do template e substituir placeholders
+            mammoth.extractRawText({ path: templatePath })
+                .then(result => {
+                    let content = result.value;
+                    
+                    Object.keys(fields).forEach(key => {
+                        const placeholder = `{{${key}}}`;
+                        const value = fields[key] || '';
+                        content = content.replace(new RegExp(placeholder, 'g'), value);
+                    });
+                    
+                    doc.fontSize(12);
+                    content.split('\n').forEach(line => {
+                        if (line.trim()) {
+                            doc.text(line);
+                            doc.moveDown();
+                        }
+                    });
+                    
+                    doc.end();
+                })
+                .catch(reject);
+        } catch (error) {
+            reject(new Error('Erro ao gerar PDF'));
         }
-        
-        fs.writeFileSync(tempDocxPath, buf);
-
-        // Converter DOCX para HTML usando configurações robustas
-        const result = await mammoth.convertToHtml({ 
-            path: tempDocxPath,
-            options: PDFEnhancer.getMammothAdvancedOptions()
-        });
-        
-        let html = result.value;
-        
-        // Processar HTML para detectar elementos visuais
-        html = PDFEnhancer.processHtmlForComplexElements(html);
-
-        // Criar HTML completo para PDF
-        const fullHtml = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Documento</title>
-                <style>
-                    ${PDFEnhancer.getUltraRobustCSS('Documento')}
-                </style>
-            </head>
-            <body>
-                ${html}
-            </body>
-            </html>
-        `;
-
-        // Usar Puppeteer para gerar PDF
-        const puppeteer = require('puppeteer');
-        browser = await puppeteer.launch(PDFEnhancer.getPuppeteerAdvancedConfig());
-        
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
-        
-        // Interceptar requests desnecessários
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            if(req.resourceType() == 'stylesheet' || req.resourceType() == 'font'){
-                req.abort();
-            } else {
-                req.continue();
-            }
-        });
-        
-        await page.setContent(fullHtml, { 
-            waitUntil: ['networkidle0', 'domcontentloaded'],
-            timeout: 120000
-        });
-        
-        // Aguardar carregamento
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Executar otimizações
-        await page.evaluate(PDFEnhancer.getPageOptimizationScript());
-        
-        // Aguardar após otimizações
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Gerar PDF
-        const pdfBuffer = await page.pdf(PDFEnhancer.getPDFAdvancedOptions());
-        
-        await browser.close();
-        browser = null;
-        
-        // Limpar arquivo temporário
-        if (tempDocxPath && fs.existsSync(tempDocxPath)) {
-            fs.unlinkSync(tempDocxPath);
-        }
-        
-        console.log('PDF robusto gerado com sucesso! Tamanho:', pdfBuffer.length, 'bytes');
-        return pdfBuffer;
-        
-    } catch (error) {
-        console.error('Erro ao gerar PDF robusto:', error);
-        
-        if (browser) {
-            try {
-                await browser.close();
-            } catch (closeError) {
-                console.error('Erro ao fechar browser:', closeError);
-            }
-        }
-        
-        // Limpar arquivo temporário
-        if (tempDocxPath && fs.existsSync(tempDocxPath)) {
-            fs.unlinkSync(tempDocxPath);
-        }
-        
-        throw new Error('Erro ao gerar PDF');
-    }
+    });
 }
 
 // Controladores

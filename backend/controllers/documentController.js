@@ -1,6 +1,5 @@
 const { Document, DocumentVersion, DocumentTemplate, Subject, User } = require('../models');
-const PDFEnhancer = require('../utils/pdfEnhancer');
-const mammoth = require('mammoth');
+const PDFDocument = require('pdfkit');
 
 exports.getDocuments = async (req, res) => {
     try {
@@ -204,167 +203,110 @@ const validateContentAgainstTemplate = (content, templateStructure) => {
     }
 }
 
-// Função auxiliar para gerar arquivo do documento usando Puppeteer
+// Função auxiliar para gerar arquivo do documento
 const generateDocumentFile = async (document) => {
-    let browser = null;
-    
-    try {
-        console.log('Gerando PDF robusto do documento:', document.title);
-        
-        // Criar HTML estruturado do documento
-        let html = `
-            <div class="document-header">
-                <h1>SISA - Sistema Acadêmico</h1>
-                <h2>${document.title}</h2>
-                ${document.subject ? `<p><strong>Disciplina:</strong> ${document.subject.name}</p>` : ''}
-                <hr>
-            </div>
-            
-            <div class="document-content">
-                <h3>Conteúdo do Documento:</h3>
-        `;
-        
-        // Adicionar conteúdo baseado no template
-        if (document.content && document.template && document.template.structure) {
-            Object.entries(document.template.structure).forEach(([fieldName, fieldConfig]) => {
-                const value = document.content[fieldName];
-                if (value) {
-                    html += `
-                        <div class="field">
-                            <h4>${fieldConfig.label || fieldName}:</h4>
-                            <p>${value.toString()}</p>
-                        </div>
-                    `;
+    return new Promise((resolve, reject) => {
+        try {
+            // Criar novo documento PDF
+            const doc = new PDFDocument({
+                size: 'A4',
+                margin: 50,
+                info: {
+                    Title: document.title,
+                    Author: 'SISA',
+                    Subject: document.subject ? document.subject.name : '',
+                    Keywords: 'documento, acadêmico, sisa',
+                    CreationDate: new Date()
                 }
             });
-        }
-        
-        html += `
-            </div>
-            
-            <div class="document-footer">
-                <hr>
-                <p><strong>Documento gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-                <p><strong>Versão:</strong> ${document.version}</p>
-                <p><strong>Status:</strong> ${document.status}</p>
-            </div>
-        `;
 
-        // Criar HTML completo para PDF
-        const fullHtml = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${document.title}</title>
-                <style>
-                    ${PDFEnhancer.getUltraRobustCSS(document.title)}
-                    
-                    .document-header {
-                        text-align: center;
-                        margin-bottom: 30px;
-                    }
-                    
-                    .document-header h1 {
-                        color: #2c3e50;
-                        margin-bottom: 10px;
-                    }
-                    
-                    .document-header h2 {
-                        color: #34495e;
-                        margin-bottom: 20px;
-                    }
-                    
-                    .document-content {
-                        margin: 20px 0;
-                    }
-                    
-                    .field {
-                        margin-bottom: 15px;
-                        padding: 10px;
-                        border-left: 4px solid #3498db;
-                        background-color: #f8f9fa;
-                    }
-                    
-                    .field h4 {
-                        margin: 0 0 5px 0;
-                        color: #2c3e50;
-                    }
-                    
-                    .field p {
-                        margin: 0;
-                        color: #34495e;
-                    }
-                    
-                    .document-footer {
-                        margin-top: 30px;
-                        text-align: center;
-                        font-size: 10pt;
-                        color: #7f8c8d;
-                    }
-                    
-                    hr {
-                        border: none;
-                        border-top: 2px solid #bdc3c7;
-                        margin: 20px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                ${html}
-            </body>
-            </html>
-        `;
+            // Buffer para armazenar o PDF
+            const chunks = [];
+            doc.on('data', chunk => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-        // Usar Puppeteer para gerar PDF
-        const puppeteer = require('puppeteer');
-        browser = await puppeteer.launch(PDFEnhancer.getPuppeteerAdvancedConfig());
-        
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
-        
-        // Interceptar requests desnecessários
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            if(req.resourceType() == 'stylesheet' || req.resourceType() == 'font'){
-                req.abort();
-            } else {
-                req.continue();
+            // Configurar fonte e estilo padrão
+            doc.font('Helvetica');
+
+            // Adicionar cabeçalho
+            doc.fontSize(20)
+               .text('SISA - Sistema Acadêmico', { align: 'center' })
+               .moveDown();
+
+            // Título do documento
+            doc.fontSize(18)
+               .text(document.title, { align: 'center' })
+               .moveDown();
+
+            // Informações da disciplina
+            if (document.subject) {
+                doc.fontSize(12)
+                   .text(`Disciplina: ${document.subject.name}`, { align: 'left' })
+                   .moveDown();
             }
-        });
-        
-        await page.setContent(fullHtml, { 
-            waitUntil: ['networkidle0', 'domcontentloaded'],
-            timeout: 120000
-        });
-        
-        // Aguardar carregamento
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Executar otimizações
-        await page.evaluate(PDFEnhancer.getPageOptimizationScript());
-        
-        // Gerar PDF
-        const pdfBuffer = await page.pdf(PDFEnhancer.getPDFAdvancedOptions());
-        
-        await browser.close();
-        browser = null;
-        
-        console.log('PDF robusto do documento gerado com sucesso! Tamanho:', pdfBuffer.length, 'bytes');
-        return pdfBuffer;
-        
-    } catch (error) {
-        console.error('Erro ao gerar PDF robusto do documento:', error);
-        
-        if (browser) {
-            try {
-                await browser.close();
-            } catch (closeError) {
-                console.error('Erro ao fechar browser:', closeError);
+
+            // Adicionar linha separadora
+            doc.moveTo(50, doc.y)
+               .lineTo(545, doc.y)
+               .stroke()
+               .moveDown();
+
+            // Conteúdo do documento baseado no template
+            if (document.content && document.template && document.template.structure) {
+                doc.fontSize(14)
+                   .text('Conteúdo do Documento:', { underline: true })
+                   .moveDown();
+
+                // Iterar sobre os campos do template
+                Object.entries(document.template.structure).forEach(([fieldName, fieldConfig]) => {
+                    const value = document.content[fieldName];
+                    if (value) {
+                        // Título do campo
+                        doc.fontSize(12)
+                           .fillColor('#444444')
+                           .text(`${fieldConfig.label || fieldName}:`, { continued: false });
+
+                        // Valor do campo
+                        doc.fontSize(11)
+                           .fillColor('#000000')
+                           .text(value.toString(), { indent: 20 })
+                           .moveDown(0.5);
+                    }
+                });
             }
+
+            // Adicionar linha separadora
+            doc.moveDown()
+               .moveTo(50, doc.y)
+               .lineTo(545, doc.y)
+               .stroke()
+               .moveDown();
+
+            // Rodapé com informações do documento
+            doc.fontSize(10)
+               .text(`Documento gerado em: ${new Date().toLocaleString('pt-BR')}`, { align: 'center' })
+               .text(`Versão: ${document.version}`, { align: 'center' })
+               .text(`Status: ${document.status}`, { align: 'center' });
+
+            // Adicionar numeração de páginas
+            const pages = doc.bufferedPageRange();
+            for (let i = 0; i < pages.count; i++) {
+                doc.switchToPage(i);
+                doc.fontSize(8)
+                   .text(
+                       `Página ${i + 1} de ${pages.count}`,
+                       50,
+                       doc.page.height - 50,
+                       { align: 'center' }
+                   );
+            }
+
+            // Finalizar o PDF
+            doc.end();
+
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            reject(error);
         }
-        
-        throw error;
-    }
+    });
 }
