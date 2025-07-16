@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const path = require("path");
 
+// Carregar variáveis de ambiente
+dotenv.config();
+
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const studentsRoutes = require("./routes/studentsRoute");
