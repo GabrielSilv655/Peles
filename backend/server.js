@@ -191,8 +191,13 @@ const startServer = async (port) => {
     
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
-      console.log(`API URL: http://localhost:${port}/api`);
-      console.log(`Test URL: http://localhost:${port}/api/test`);
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`API URL: https://sisa.up.railway.app/api`);
+        console.log(`Test URL: https://sisa.up.railway.app/api/test`);
+      } else {
+        console.log(`API URL: http://localhost:${port}/api`);
+        console.log(`Test URL: http://localhost:${port}/api/test`);
+      }
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         console.log(`Porta ${port} em uso, tentando porta ${port + 1}`);
