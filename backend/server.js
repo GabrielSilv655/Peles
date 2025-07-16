@@ -133,7 +133,7 @@ try {
 // Configuração CORS mais detalhada
 if (process.env.NODE_ENV === 'production') {
   app.use(cors({
-    origin: ['https://sisa-project.up.railway.app'],
+    origin: ['https://sisa-project.up.railway.app', 'https://sisa.up.railway.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -141,8 +141,8 @@ if (process.env.NODE_ENV === 'production') {
 } else {	
   // Suporta tanto HTTP quanto HTTPS em desenvolvimento
   app.use(cors({
-    origin: ['https://localhost:3000', 'https://127.0.0.1:3000', 
-             'https://sisa-project.up.railway.app:8080', 'http://127.0.0.1:3000'],
+    origin: ['http://localhost:3000', 'https://localhost:3000', 'https://127.0.0.1:3000', 
+             'https://sisa-project.up.railway.app', 'http://127.0.0.1:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
