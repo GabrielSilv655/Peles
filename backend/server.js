@@ -133,7 +133,7 @@ try {
 // Configuração CORS mais detalhada
 if (process.env.NODE_ENV === 'production') {
   app.use(cors({
-    origin: ['https://amused-friendship-production.up.railway.app'],
+    origin: ['sisa-project.up.railway.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
