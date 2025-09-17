@@ -660,6 +660,38 @@ h2 {
 }
 
 
+/* Media query específica para telas menores que 700px */
+@media (max-width: 700px) {
+  .sidebar-header {
+    padding: 1rem 1.5rem;
+    min-height: 80px;
+  }
+
+  .menu-title {
+    font-size: 1.8rem;
+    margin-top: 10px;
+    flex: 1;
+    text-align: left;
+  }
+
+  .close-button {
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    font-size: 1.4rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  .sidebar {
+    width: 280px;
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 1rem;
@@ -754,6 +786,27 @@ h2 {
 
   .toggle-group {
     transform: scale(0.7);
+  }
+
+  /* Ajustes específicos para telas muito pequenas */
+  .sidebar-header {
+    padding: 0.8rem 1rem;
+    min-height: 70px;
+  }
+
+  .menu-title {
+    font-size: 1.5rem;
+    margin-top: 5px;
+  }
+
+  .close-button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .sidebar {
+    width: 260px;
   }
 }
 
