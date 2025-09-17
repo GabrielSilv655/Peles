@@ -240,6 +240,28 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
 });
 
+// Endpoint específico para testar conectividade do banco de dados
+app.get("/api/db-test", async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    const [results] = await sequelize.query('SELECT 1 as test');
+    res.json({ 
+      status: 'ok', 
+      message: 'Banco de dados conectado com sucesso',
+      test_query: results[0],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[DB_TEST] Erro ao testar banco:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Erro ao conectar com o banco de dados',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async (port) => {

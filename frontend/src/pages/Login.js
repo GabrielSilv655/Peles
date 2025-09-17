@@ -48,10 +48,13 @@ export default function Login() {
       return;
     }
     
+    console.log('[LOGIN] Tentando login para:', email);
+    console.log('[LOGIN] API baseURL:', API.defaults.baseURL);
     setLoading(true);
     
     try {
       const res = await API.post("/auth/login", { email, password });
+      console.log('[LOGIN] Login bem-sucedido, token recebido:', !!res.data.token);
       
       // Verificar se temos token
       if (!res.data.token) {

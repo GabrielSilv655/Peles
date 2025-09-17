@@ -22,6 +22,7 @@ import CashFlow from "./pages/Storage/CashFlow";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PermissionProtectedRoute from "./components/PermissionProtectedRoute";
+import ConnectivityTest from "./components/ConnectivityTest";
 
 import './styles/global.css';
 
@@ -39,6 +40,8 @@ function AppContent() {
   return (
     <>
       {!hideNavbar && <Navbar />}
+      {/* Componente de teste de conectividade - só aparece em desenvolvimento ou quando necessário */}
+      {(process.env.NODE_ENV === 'development' || window.location.search.includes('debug=true')) && <ConnectivityTest />}
       <Routes>
         <Route path='*' exact={true} element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/" element={<Login />} />
