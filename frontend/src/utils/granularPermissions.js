@@ -176,12 +176,19 @@ export const filterAllowedDocuments = (documents, userId, userRole) => {
   // Filtrar apenas documentos com acesso permitido
   const filteredDocuments = documents.filter(document => {
     // Considerar múltiplas chaves possíveis do mesmo documento
-    const keys = [document.id, document.template_id].filter(Boolean).map(id => String(id));
-    const isRestricted = keys.some(k => restrictedSetDocs.has(k));
+    const isTemplate = document.status === 'template' || document.isTemplate;
+    const baseId = document.id;
+    const candidateKeys = new Set([
+      String(baseId),
+      String(document.template_id || ''),
+      isTemplate ? `template_${baseId}` : null
+    ].filter(Boolean));
+
+    const isRestricted = Array.from(candidateKeys).some(k => restrictedSetDocs.has(k));
 
     const docName = document.name || document.title || `ID: ${document.id}`;
-    const docType = document.status || 'normal';
-    console.log(`📄 Documento "${docName}" (keys: [${keys.join(', ')}], Tipo: ${docType}): ${!isRestricted ? 'INCLUÍDO' : 'EXCLUÍDO'}`);
+    const docType = document.status || (isTemplate ? 'template' : 'normal');
+    console.log(`📄 Documento "${docName}" (keys: [${Array.from(candidateKeys).join(', ')}], Tipo: ${docType}): ${!isRestricted ? 'INCLUÍDO' : 'EXCLUÍDO'}`);
 
     return !isRestricted;
   });

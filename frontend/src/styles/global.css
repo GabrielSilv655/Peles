@@ -170,6 +170,7 @@ body.no-scroll {
   top: 0;
   left: 0;
   height: 100vh;
+  min-height: 567px;
   width: 320px;
   background: linear-gradient(145deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
   box-shadow: none; /* sem sombra quando fechado para não vazar brilho */
@@ -179,7 +180,8 @@ body.no-scroll {
   display: flex;
   flex-direction: column;
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Dark mode sidebar adjustments */
@@ -659,6 +661,47 @@ h2 {
   background-color: rgba(255,255,255,0.04);
 }
 
+
+/* Media query específica para alturas menores que 567px */
+@media (max-height: 699px) {
+  .sidebar {
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    flex-shrink: 0;
+    padding: 0.8rem 1rem;
+    min-height: 60px;
+  }
+
+  .menu-title {
+    font-size: 1.6rem;
+    margin-top: 5px;
+  }
+
+  .close-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .sidebar-nav {
+    padding: 1rem 1rem;
+    gap: 0.6rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .sidebar-nav a {
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+  }
+}
 
 /* Media query específica para telas menores que 700px */
 @media (max-width: 700px) {

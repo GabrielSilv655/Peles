@@ -27,6 +27,14 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
 
+  // Remove visual ocorrência de "template parcial" em títulos/descrições
+  const sanitizeTemplateText = (text) => {
+    return (text || '')
+      .replace(/(\s*-\s*)?template\s+parcial/ig, '')
+      .replace(/\s*-\s*$/g, '')
+      .trim();
+  };
+
   // Estados do formulário
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
@@ -172,7 +180,7 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
       // Criar HTML simples para mostrar os dados preenchidos
       let html = `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>📋 Template: ${template.title}</h2>
+          <h2>📋 Template: ${sanitizeTemplateText(template.title)}</h2>
           <p><strong>Layout:</strong> ${template.layout_name}</p>
           <hr style="margin: 20px 0;">
           <h3>Dados Preenchidos pelo Administrador:</h3>
@@ -462,10 +470,17 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
   console.log('🔍 DEBUG - Templates após audiência:', filteredTemplatesByAudience.length);
   console.log('🔍 DEBUG - Primeiro template após audiência:', filteredTemplatesByAudience[0]);
 
+  // Sanear títulos/descrições de templates para remover "template parcial"
+  const sanitizedTemplatesByAudience = filteredTemplatesByAudience.map(t => ({
+    ...t,
+    title: sanitizeTemplateText(t.title),
+    description: sanitizeTemplateText(t.description)
+  }));
+
   // Combinar documentos e templates parciais (sem incluir layouts)
   const allItems = [
     ...filteredDocuments.map(doc => ({ ...doc, type: 'document' })),
-    ...filteredTemplatesByAudience.map(t => ({ ...t, type: 'template', source: 'partial' }))
+    ...sanitizedTemplatesByAudience.map(t => ({ ...t, type: 'template', source: 'partial' }))
   ].sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
 
   // DEBUG: Log final
@@ -848,7 +863,7 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
           <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                ✏️ {language === "english" ? "Complete Template" : "Completar Template"}: {selectedTemplate.title}
+                ✏️ {language === "english" ? "Complete Template" : "Completar Template"}: {sanitizeTemplateText(selectedTemplate.title)}
               </h3>
               <button onClick={() => setShowTemplateForm(false)} className="close-btn">
                 ❌ {language === "english" ? "Close" : "Fechar"}

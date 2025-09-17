@@ -104,10 +104,25 @@ const GranularPermissions = ({ userId, userRole, onPermissionsChange }) => {
     await saveRestrictions(newRestricted, restrictedDocuments);
   };
 
-  const toggleDocument = async (docId) => {
-    const key = String(docId);
+  const toggleDocument = async (docId, altKeys = []) => {
+    const primaryKey = String(docId);
+    const keysToCheck = Array.from(new Set([primaryKey, ...altKeys.map(k => String(k))]));
+
     const newRestricted = new Set(restrictedDocuments);
-    if (newRestricted.has(key)) newRestricted.delete(key); else newRestricted.add(key);
+
+    // Se qualquer uma das chaves estiver presente, remover todas (desbloquear)
+    const anyPresent = keysToCheck.some(k => newRestricted.has(k) || newRestricted.has(Number(k)));
+    if (anyPresent) {
+      keysToCheck.forEach(k => {
+        newRestricted.delete(k);
+        newRestricted.delete(String(k));
+        newRestricted.delete(Number(k));
+      });
+    } else {
+      // Caso contrário, adicionar a chave primária (bloquear)
+      newRestricted.add(primaryKey);
+    }
+
     setRestrictedDocuments(newRestricted);
     await saveRestrictions(restrictedLayouts, newRestricted);
   };
@@ -136,6 +151,37 @@ const GranularPermissions = ({ userId, userRole, onPermissionsChange }) => {
     </div>
   );
 
+  // Unificar documentos enviados e templates parciais em uma única lista para permissões
+  const combinedDocuments = [
+    ...(allDocuments || []).map(d => ({
+      key: `doc-${d.id}`,
+      id: String(d.id),
+      altKeys: [String(d.id), d.id],
+      title: d.name || d.title || `Documento ${d.id}`,
+      description: d.description || '',
+      fileLabel: d.original_filename || '',
+      createdAt: d.created_at || d.createdAt,
+      isTemplate: false
+    })),
+    ...(partialTemplates || []).map(t => {
+      const rawTitle = t.title || `Template ${t.id}`;
+      const sanitizedTitle = rawTitle
+        .replace(/(\s*-\s*)?template\s+parcial/ig, '') // remove "template parcial" e hífen anterior se houver
+        .replace(/\s*-\s*$/g, '') // remove hífen no final, se sobrar
+        .trim();
+      return {
+        key: `tpl-${t.id}`,
+        id: `template_${t.id}`,
+        altKeys: [`template_${t.id}`, String(t.id), t.id],
+        title: sanitizedTitle || rawTitle,
+        description: t.description || t.layout_description || '',
+        fileLabel: t.layout_name ? `${language === 'english' ? 'Template' : 'Template'} · ${t.layout_name}` : (language === 'english' ? 'Template' : 'Template'),
+        createdAt: t.createdAt || t.created_at,
+        isTemplate: true
+      };
+    })
+  ];
+
   return (
     <div className="granular-permissions">
       <div className="granular-permissions-header">
@@ -145,7 +191,7 @@ const GranularPermissions = ({ userId, userRole, onPermissionsChange }) => {
 
       <div className="granular-tabs">
         <button className={`granular-tab ${activeTab === 'layouts' ? 'active' : ''}`} onClick={() => setActiveTab('layouts')}>📄 {language === 'english' ? 'Layouts' : 'Layouts'} ({layouts.length})</button>
-        <button className={`granular-tab ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>📁 {language === 'english' ? 'Documents' : 'Documentos'} ({allDocuments.length})</button>
+        <button className={`granular-tab ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>📁 {language === 'english' ? 'Documents' : 'Documentos'} ({combinedDocuments.length})</button>
       </div>
 
       {activeTab === 'layouts' && (
@@ -179,63 +225,34 @@ const GranularPermissions = ({ userId, userRole, onPermissionsChange }) => {
 
       {activeTab === 'documents' && (
         <div className="granular-content">
-          {allDocuments.length === 0 ? (
+          {combinedDocuments.length === 0 ? (
             <div className="granular-empty">
               <p>📁 {language === 'english' ? 'No documents found' : 'Nenhum documento encontrado'}</p>
             </div>
           ) : (
-            <>
-              <div className="granular-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-                {allDocuments.map(document => {
-                  const key = String(document.id);
-                  const isRestricted = restrictedDocuments.has(key) || restrictedDocuments.has(document.id) || restrictedDocuments.has(Number(document.id));
-                  const hasAccess = !isRestricted;
-                  return (
-                    <div key={`doc-${document.id}`} className={`granular-item ${hasAccess ? 'has-access' : 'restricted'}`}>
-                      <div className="granular-item-info">
-                        <h4>{document.name} (ID: {document.id})</h4>
-                        {document.description && <p>{document.description}</p>}
-                        <small>
-                          {document.original_filename ? `${language === 'english' ? 'File' : 'Arquivo'}: ${document.original_filename} | ` : ''}
-                          {document.created_at ? `${language === 'english' ? 'Created at' : 'Criado em'}: ${new Date(document.created_at).toLocaleDateString('pt-BR')}` : ''}
-                        </small>
-                      </div>
-                      <div className="granular-item-permissions">
-                        {renderToggle(hasAccess, () => toggleDocument(document.id), hasAccess ? (language === 'english' ? 'Click to restrict' : 'Clique para restringir') : (language === 'english' ? 'Click to allow' : 'Clique para permitir'))}
-                      </div>
+            <div className="granular-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              {combinedDocuments.map(item => {
+                const key = item.id; // sempre string
+                const allKeys = Array.from(new Set([key, ...(item.altKeys || [])])).map(k => String(k));
+                const isRestricted = allKeys.some(k => restrictedDocuments.has(k) || restrictedDocuments.has(Number(k)));
+                const hasAccess = !isRestricted;
+                return (
+                  <div key={item.key} className={`granular-item ${hasAccess ? 'has-access' : 'restricted'}`}>
+                    <div className="granular-item-info">
+                      <h4>{item.title} {item.isTemplate ? `(Template)` : ''}</h4>
+                      {item.description && <p>{item.description}</p>}
+                      <small>
+                        {item.fileLabel ? `${language === 'english' ? 'Info' : 'Info'}: ${item.fileLabel} | ` : ''}
+                        {item.createdAt ? `${language === 'english' ? 'Created at' : 'Criado em'}: ${new Date(item.createdAt).toLocaleDateString('pt-BR')}` : ''}
+                      </small>
                     </div>
-                  );
-                })}
-              </div>
-
-              {partialTemplates.length > 0 && (
-                <div style={{ marginTop: '24px' }}>
-                  <h4 style={{ margin: '10px 0' }}>{language === 'english' ? 'Documents available for editing' : 'Documentos disponíveis para editar'}</h4>
-                  <div className="granular-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-                    {partialTemplates.map(template => {
-                      const key = String(template.id);
-                      const isRestricted = restrictedDocuments.has(key);
-                      const hasAccess = !isRestricted;
-                      return (
-                        <div key={`tpl-${key}`} className={`granular-item ${hasAccess ? 'has-access' : 'restricted'}`}>
-                          <div className="granular-item-info">
-                            <h4>{template.title} (Template ID: {key})</h4>
-                            {template.description && <p>{template.description}</p>}
-                            <small>
-                              {template.layout_name ? `${language === 'english' ? 'Layout' : 'Layout'}: ${template.layout_name} | ` : ''}
-                              {(template.createdAt || template.created_at) ? `${language === 'english' ? 'Created at' : 'Criado em'}: ${new Date(template.createdAt || template.created_at).toLocaleDateString('pt-BR')}` : ''}
-                            </small>
-                          </div>
-                          <div className="granular-item-permissions">
-                            {renderToggle(hasAccess, () => toggleDocument(key), hasAccess ? (language === 'english' ? 'Click to restrict' : 'Clique para restringir') : (language === 'english' ? 'Click to allow' : 'Clique para permitir'))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div className="granular-item-permissions">
+                      {renderToggle(hasAccess, () => toggleDocument(key, item.altKeys || []), hasAccess ? (language === 'english' ? 'Click to restrict' : 'Clique para restringir') : (language === 'english' ? 'Click to allow' : 'Clique para permitir'))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
