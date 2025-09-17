@@ -40,8 +40,8 @@ function AppContent() {
   return (
     <>
       {!hideNavbar && <Navbar />}
-      {/* Componente de teste de conectividade - só aparece em desenvolvimento ou quando necessário */}
-      {(process.env.NODE_ENV === 'development' || window.location.search.includes('debug=true')) && <ConnectivityTest />}
+      {/* Componente de teste de conectividade - só aparece em desenvolvimento local ou quando necessário */}
+      {((typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) || window.location.search.includes('debug=true')) && <ConnectivityTest />}
       <Routes>
         <Route path='*' exact={true} element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/" element={<Login />} />
