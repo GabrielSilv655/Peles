@@ -1,0 +1,520 @@
+import React, { useEffect, useState } from "react";
+import API from "../../api";
+import { useNavigate, useParams } from "react-router-dom";
+import { cpf } from "cpf-cnpj-validator";
+import { useLanguage } from '../../components/LanguageContext';
+import { validadeAge, validateEmail } from '../../utils/validation';
+import { dateToString, StringToDate } from '../../utils/utils';
+import useConfirmation from '../../hooks/useConfirmation';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import '../../styles/global.css';
+import '../../styles/students-creation.css';
+
+export default function StudentsForm() {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { language } = useLanguage();
+    const [phoneError, setPhoneError] = useState("");
+    const [secondPhoneError, setSecondPhoneError] = useState("");
+    const [cpfError, setCpfError] = useState("");
+    const [rgError, setRgError] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [childAge, setChildAge] = useState("");
+    const [ageError, setAgeError] = useState("");
+    const { confirmationState, showConfirmation, hideConfirmation, handleConfirm } = useConfirmation();
+
+    const [student, setStudent] = useState({
+        name: "",
+        registration: 0,
+        CPF: "",
+        gender: "",
+        skin_color: "",
+        RG: "",
+        email: "",
+        phone: "",
+        second_phone: "",
+        responsable: "",
+        degree_of_kinship: "",
+        UBS: "",
+        is_on_school: false,
+        school_year: "",
+        school_name: "",
+        school_period: "",
+        birth_date: "",
+        address: "",
+        neighborhood: "",
+        cep: "",
+        notes: "",
+        active: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    });
+
+    useEffect(() => {
+        if (id) {
+            getStudentById();
+        }
+    }, [id]);
+
+    const getStudentById = async () => {
+        try {
+            const response = await API.get(`/students/${id}`);
+            setStudent(response.data);
+            setChildAge(validadeAge(response.data.birth_date))
+        } catch (err) {
+            console.error("Erro ao buscar aluno:", err);
+        }
+    };
+
+    const validatePhoneNumber = (phone) => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        if (!cleanPhone) return true;
+        
+        if (cleanPhone.length !== 10 && cleanPhone.length !== 11) {
+            return false;
+        }
+        
+        const areaCode = parseInt(cleanPhone.substring(0, 2));
+        if (areaCode < 11 || areaCode > 99) {
+            return false;
+        }
+        
+        return true;
+    };
+
+    const formatPhoneNumber = (phone) => {
+        const cleaned = phone.replace(/\D/g, '');
+        
+        if (cleaned.length === 11) {
+            return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+        } else if (cleaned.length === 10) {
+            return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+        }
+        
+        return phone;
+    };
+
+    const handlePhoneChange = (e, isSecondPhone = false) => {
+        const phoneValue = e.target.value;
+        const formattedPhone = formatPhoneNumber(phoneValue);
+        
+        if (isSecondPhone) {
+            setStudent({ ...student, second_phone: formattedPhone });
+            if (phoneValue && !validatePhoneNumber(phoneValue)) {
+                setSecondPhoneError("Telefone inválido. Use um número de telefone brasileiro válido.");
+            } else {
+                setSecondPhoneError("");
+            }
+        } else {
+            setStudent({ ...student, phone: formattedPhone });
+            if (phoneValue && !validatePhoneNumber(phoneValue)) {
+                setPhoneError("Telefone inválido. Use um número de telefone brasileiro válido.");
+            } else {
+                setPhoneError("");
+            }
+        }
+    };
+
+    const validateCPF = (cpfNumber) => {
+        const cleanCPF = cpfNumber.replace(/\D/g, '');
+        
+        if (!cleanCPF) return true;
+        
+        return cpf.isValid(cleanCPF);
+    };
+
+    const validateRG = (rg) => {
+        const cleanRG = rg.replace(/[^\dX]/gi, '');
+        
+        if (!cleanRG) return true;
+        
+        if (cleanRG.length < 8 || cleanRG.length > 14) {
+            return false;
+        }
+        
+        return true;
+    };
+
+    const formatCPF = (cpfNumber) => {
+        const cleanCPF = cpfNumber.replace(/\D/g, '');
+        if (cleanCPF.length === 11) {
+            return cpf.format(cleanCPF);
+        }
+        return cpfNumber;
+    };
+
+    const formatRG = (rg) => {
+        const cleanRG = rg.replace(/\D/g, '');
+        if (cleanRG.length >= 8) {
+            return cleanRG.replace(/^(\d{2})(\d{3})(\d{3})(\d{1}|X).*/, '$1.$2.$3-$4');
+        }
+        return rg;
+    };
+
+    const handleCPFChange = (e) => {
+        const cpfValue = e.target.value;
+        const formattedCPF = formatCPF(cpfValue);
+        
+        setStudent({ ...student, CPF: formattedCPF });
+        
+        if (cpfValue && !validateCPF(cpfValue)) {
+            setCpfError("CPF inválido");
+        } else {
+            setCpfError("");
+        }
+    };
+
+    const handleRGChange = (e) => {
+        const rgValue = e.target.value;
+        const formattedRG = formatRG(rgValue);
+        
+        setStudent({ ...student, RG: formattedRG });
+        
+        if (rgValue && !validateRG(rgValue)) {
+            setRgError("RG inválido. Deve conter entre 8 e 14 caracteres.");
+        } else {
+            setRgError("");
+        }
+    };
+
+    const handleEmailChange = (e) => {
+        const emailValue = e.target.value;
+        setStudent({ ...student, email: emailValue });
+        
+        if (emailValue) {
+            const emailValidation = validateEmail(emailValue);
+            if (!emailValidation.isValid) {
+                setEmailError(emailValidation.message);
+            } else {
+                setEmailError("");
+            }
+        } else {
+            setEmailError("");
+        }
+    };
+
+    const handleBirthDate = (e) => {
+
+        const birthDate = StringToDate(e.target.value)
+
+        const res = validadeAge(birthDate)
+
+        if(typeof res != "number"){
+            setAgeError(res.message)
+            setChildAge("");
+            
+        } else {
+            setAgeError("")
+            setStudent({ ...student, birth_date: birthDate});
+            setChildAge(res);
+        }
+    }
+
+    const handleCreate = async () => {
+        if (!validateCPF(student.CPF)) {
+            setCpfError("CPF inválido");
+            return;
+        }
+        
+        if (student.RG && !validateRG(student.RG)) {
+            setRgError("RG inválido");
+            return;
+        }
+
+        if (!validatePhoneNumber(student.phone)) {
+            setPhoneError("Telefone principal inválido");
+            return;
+        }
+        
+        if (student.second_phone && !validatePhoneNumber(student.second_phone)) {
+            setSecondPhoneError("Telefone secundário inválido");
+            return;
+        }
+        
+        if (student.birth_date >= (new Date(Date.now()))) {
+            setAgeError("Erro da Data de nascimento");
+            return;
+        }
+
+        if (student.email) {
+            const emailValidation = validateEmail(student.email);
+            if (!emailValidation.isValid) {
+                setEmailError(emailValidation.message);
+                return;
+            }
+        }
+
+        showConfirmation({
+            type: 'edit',
+            title: language === "english" ? "Edit Student" : "Editar Aluno",
+            message: language === "english" 
+              ? `Do you want to edit student "${student?.name}"?`
+              : `Deseja editar o aluno "${student?.name}"?`,
+            confirmText: language === "english" ? "Edit" : "Editar",
+            onConfirm: async () => {
+                if (id) {
+                    await API.put(`/students/${id}`, student);
+                } else {
+                    console.log(student)
+                    await API.post("/students", student);
+                }
+                navigate("/students");
+            }
+        });
+
+    };
+
+    return (
+        <div className="student-form-container">
+            <form
+                id="studentForm"
+                className="student-form" 
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreate();
+                }}
+            >
+                <div className="form-header">
+                    <button onClick={() => navigate("/students")} className="transparent-button back-button">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="25"
+                            height="25"
+                            fill="currentColor"
+                            viewBox="0 0 16 16"
+                            >
+                            <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z" />
+                        </svg>
+                    </button>
+                    <h2>{id 
+                        ?  language === "english" ? "Edit Student" : "Editar Aluno"
+                        : language === "english" ? "Create Student" : "Criar Aluno"
+                    }
+                    </h2>
+                </div>
+
+                <div className="form-group">
+                <label htmlFor="name">{language === "english" ? "Name" : "Nome"}</label>
+                <input 
+                    id="name"
+                    type="text"
+                    placeholder={language === "english" ? "Write the Student's Name" : "Digite o Nome do Aluno"}
+                    value={student?.name}
+                    onChange={(e) => setStudent({ ...student, name: e.target.value })}
+                    required
+                />
+                </div>
+                <div className="form-group">
+                <label htmlFor="CPF">CPF</label>
+                <input 
+                    id="CPF"
+                    type="text"
+                    placeholder={language === "english" ? "Write the CPF" : "Digite o CPF"}
+                    value={student.CPF}
+                    onChange={handleCPFChange}
+                />
+                {cpfError && <span className="error-message">{cpfError}</span>}
+                </div>
+                <div className="form-group">
+                <label htmlFor="RG">RG</label>
+                <input 
+                    id="RG"
+                    type="text"
+                    placeholder={language === "english" ? "Write the RG" : "Digite o RG"}
+                    value={student.RG}
+                    onChange={handleRGChange}
+                />
+                {rgError && <span className="error-message">{rgError}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="gender">{language === "english" ? "Gender" : "Sexo"}</label>
+                    <div className="radio-group">
+                        <input 
+                            id="gender-male"
+                            type="radio"
+                            name="gender"
+                            value="Masculino"
+                            checked={student.gender === "Masculino"}
+                            onChange={(e) => setStudent({ ...student, gender: e.target.value })}
+                        />
+                        <label htmlFor="gender-male">{language === "english" ? "Male" : "Masculino"}</label>
+                        <input 
+                            id="gender-female"
+                            type="radio"
+                            name="gender"
+                            value="Feminino"
+                            checked={student.gender === "Feminino"}
+                            onChange={(e) => setStudent({ ...student, gender: e.target.value })}
+                        />
+                        <label htmlFor="gender-female">{language === "english" ? "Female" : "Feminino"}</label>
+                    </div>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="birth_date">{language === "english" ? "Birth Date" : "Data de Nascimento"}</label>
+                    <div className="dob-wrapper">
+                        <input 
+                            id="birth_date"
+                            className="dob-input"
+                            type="date"
+                            max={new Date().toISOString().split('T')[0]}
+                            value={dateToString(student.birth_date)}
+                            onChange={handleBirthDate}
+                        />
+                        <button
+                            type="button"
+                            className="calendar-button"
+                            aria-label={language === "english" ? "Open calendar" : "Abrir calendário"}
+                            onClick={() => {
+                                const el = document.getElementById('birth_date');
+                                if (el) el.showPicker ? el.showPicker() : el.focus();
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7 10h5v5H7z"/><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 17H5V9h14v12z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="birth_date">{language === "english" ? "Child's age: " : "Idade Da Criança: "} {childAge}</label>
+                    {ageError && <span className="error-message">{ageError}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="neighborhood">{language === "english" ? "neighborhood" : "Bairro"}</label>
+                    <input 
+                    id="neighborhood"
+                    type="text"
+                    placeholder={language === "english" ? "Write the neighborhood " : "Digite a Bairro"}
+                    value={student.neighborhood}
+                    onChange={(e) => setStudent({ ...student, neighborhood: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="skin_color">{language === "english" ? "Skin Color" : "Cor Da Pele"}</label>
+                    <input 
+                        id="skin_color"
+                        type="text"
+                        placeholder={language === "english" ? "Write the Student's Skin Color" : "Digite a cor da pele"}
+                        value={student.skin_color}
+                        onChange={(e) => setStudent({ ...student, skin_color: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="email">Email para Contato</label>
+                    <input 
+                        id="email"
+                        type="text"
+                        placeholder={language === "english" ? "Write the Email Address to contact" : "Digite o Email para contato"}
+                        value={student.email}
+                        onChange={handleEmailChange}
+                    />
+                    {emailError && <span className="error-message">{emailError}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="phone">{language === "english" ? "Phone Number" : "Telefone"}</label>
+                    <input 
+                        id="phone"
+                        type="text"
+                        placeholder={language === "english" ? "Write the Phone Number" : "Digite o Telefone"}
+                        value={student.phone}
+                        onChange={(e) => handlePhoneChange(e, false)}
+                    />
+                    {phoneError && <span className="error-message">{phoneError}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="second_phone">{language === "english" ? "Secondary Phone Number" : "Telefone Secundario"}</label>
+                    <input 
+                        id="second_phone"
+                        type="text"
+                        placeholder={language === "english" ? "Write the Phone Number" : "Digite o Telefone"}
+                        value={student.second_phone}
+                        onChange={(e) => handlePhoneChange(e, true)}
+                    />
+                    {secondPhoneError && <span className="error-message">{secondPhoneError}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="is_on_school">{language === "english" ? "Is on School Actually?" : "Esta na Escola Atualmente?"}</label>
+                    <div className="radio-group">
+                        <input 
+                            id="is-school"
+                            type="radio"
+                            name="No"
+                            value="false"
+                            checked={student.is_on_school === false || student.is_on_school === "false"}
+                            onChange={(e) => setStudent({ ...student, is_on_school: e.target.value })}
+                        />
+                        <label htmlFor="isnt-school">{language === "english" ? "No" : "Não"}</label>
+                        <input 
+                            id="isnt-school"
+                            type="radio"
+                            name="Yes"
+                            value="true"
+                            checked={student.is_on_school === true || student.is_on_school === "true"}
+                            onChange={(e) => setStudent({ ...student, is_on_school: e.target.value })}
+                        />
+                        <label htmlFor="isnt-school">{language === "english" ? "Yes" : "Sim"}</label>
+                    </div>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="school_year">{language === "english" ? "School's Year" : "Ano Escolar"}</label>
+                    <input 
+                        id="school_year"
+                        type="text"
+                        placeholder={language === "english" ? "Write the school year of student" : "Digite o ano da escola que o aluno esta"}
+                        value={student.school_year}
+                        onChange={(e) => setStudent({ ...student, school_year: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="school_name">{language === "english" ? "School's Name" : "Nome da Escola"}</label>
+                    <input 
+                        id="school_name"
+                        type="text"
+                        placeholder={language === "english" ? "Write the School's Name" : "Digite Nome da Escola"}
+                        value={student.school_name}
+                        onChange={(e) => setStudent({ ...student, school_name: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="school_period">{language === "english" ? "School's period" : "Periodo Escolar"}</label>
+                    <input 
+                        id="school_name"
+                        type="text"
+                        placeholder={language === "english" ? "Write the School's period" : "Digite Periodo que a criança estuda"}
+                        value={student.school_period}
+                        onChange={(e) => setStudent({ ...student, school_period: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="neighborhood">{language === "english" ? "Notes" : "Informações Adicionais"}</label>
+                    <input 
+                    id="notes"
+                    type="text"
+                    placeholder={language === "english" ? "Write addictional notes " : "Digite as Informações Adicionais"}
+                    value={student.neighborhood}
+                    onChange={(e) => setStudent({ ...student, neighborhood: e.target.value })}
+                    />
+                </div>
+                <button type="submit" className="add-student-button">
+                    {id 
+                    ? language === "english" ? "Save changes" : "Salvar Alterações"
+                    : language === "english" ? "Create Student" : "Criar Aluno"
+                    }
+                </button>
+            </form>
+
+            <ConfirmationModal
+                isOpen={confirmationState.isOpen}
+                onClose={hideConfirmation}
+                onConfirm={handleConfirm}
+                title={confirmationState.title}
+                message={confirmationState.message}
+                confirmText={confirmationState.confirmText}
+                cancelText={confirmationState.cancelText}
+                type={confirmationState.type}
+                isLoading={confirmationState.isLoading}
+            />
+        </div>
+    );
+};
