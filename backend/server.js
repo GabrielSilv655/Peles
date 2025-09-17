@@ -136,29 +136,49 @@ try {
 }
 
 // Configuração CORS mais detalhada
+const allowedOrigins = process.env.NODE_ENV === 'production'
+? ['https://sisa-project.up.railway.app']
+: [
+'https://localhost:3000', 'https://127.0.0.1:3000',
+'http://localhost:3000', 'http://127.0.0.1:3000'
+];
+
 if (process.env.NODE_ENV === 'production') {
-  app.use(cors({
-    origin: ['sisa-project.up.railway.app'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  }));
-} else {	
-  // Suporta tanto HTTP quanto HTTPS em desenvolvimento
-  app.use(cors({
-    origin: ['https://localhost:3000', 'https://127.0.0.1:3000', 
-             'http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  }));
+app.use(cors({
+origin: allowedOrigins,
+methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+allowedHeaders: ['Content-Type', 'Authorization'],
+credentials: true
+}));
+} else {
+// Suporta tanto HTTP quanto HTTPS em desenvolvimento
+app.use(cors({
+origin: allowedOrigins,
+methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+allowedHeaders: ['Content-Type', 'Authorization'],
+credentials: true
+}));
 }
+
+// Loga a origem e se está liberada no CORS (útil para problemas de hospedagem)
+app.use((req, res, next) => {
+const origin = req.headers.origin || 'N/A';
+const isAllowed = allowedOrigins.includes(origin);
+console.log(`[CONNECTIVITY] origin=${origin} allowed=${isAllowed} NODE_ENV=${process.env.NODE_ENV}`);
+next();
+});
 
 app.use(bodyParser.json({ limit: "10mb" }));
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   console.log('Headers:', req.headers);
+  next();
+});
+
+// Diagnóstico rápido de conectividade - loga host e protocolo
+app.use((req, res, next) => {
+  console.log(`[REQUEST_INFO] host=${req.headers.host} protocol=${req.protocol} ip=${req.ip}`);
   next();
 });
 
@@ -188,6 +208,34 @@ app.get("/api", (req, res) => {
   res.json({ message: "funcionando!" });
 });
 
+// Endpoint de healthcheck detalhado para verificar conectividade entre frontend e backend
+app.get("/api/healthz", async (req, res) => {
+  let dbStatus = 'unknown';
+  try {
+    await sequelize.authenticate();
+    dbStatus = 'ok';
+  } catch (e) {
+    dbStatus = `error: ${e.message}`;
+  }
+  const payload = {
+    status: 'ok',
+    time: new Date().toISOString(),
+    node_env: process.env.NODE_ENV,
+    port: PORT,
+    db: dbStatus,
+    request: {
+      ip: req.ip,
+      origin: req.headers.origin || null,
+      host: req.headers.host || null,
+      url: req.originalUrl,
+      protocol: req.protocol
+    },
+    allowedOrigins
+  };
+  console.log('[HEALTHCHECK]', payload);
+  res.status(dbStatus.startsWith('error') ? 500 : 200).json(payload);
+});
+
 app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
 });
@@ -203,6 +251,9 @@ const startServer = async (port) => {
       console.log(`Server running on port ${port}`);
       console.log(`API URL: http://localhost:${port}/api`);
       console.log(`Test URL: http://localhost:${port}/api/test`);
+      console.log(`Health URL: http://localhost:${port}/api/healthz`);
+      console.log(`NODE_ENV=${process.env.NODE_ENV}`);
+      console.log('Allowed CORS origins:', allowedOrigins);
     }).on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
         console.log(`Porta ${port} em uso, tentando porta ${port + 1}`);
