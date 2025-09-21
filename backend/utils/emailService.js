@@ -1,156 +1,132 @@
+const path = require('path');
+const sgMail = require('@sendgrid/mail');
 const { getPasswordResetTemplate, getWelcomeTemplate, getRegistrationNotificationTemplate } = require('./emailTemplates');
-require('dotenv').config();
 
-// Função para enviar email usando Resend API
-const sendEmailWithResend = async (to, subject, html) => {
+// Carregar variáveis do .env padrão e do sendgrid.env (se existir)
+try { require('dotenv').config(); } catch (_) {}
+try { require('dotenv').config({ path: path.resolve(process.cwd(), 'sendgrid.env') }); } catch (_) {}
+
+// Configurar SendGrid API Key
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+  console.warn('⚠️ SENDGRID_API_KEY não definido. Configure no ambiente (.env/sendgrid.env/Railway vars).');
+}
+
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER; // precisa ser remetente verificado no SendGrid
+
+// Função para testar a "conexão" (validação de credenciais) usando sandbox_mode do SendGrid
+const testConnection = async () => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('❌ SENDGRID_API_KEY ausente');
+    return false;
+  }
+
   try {
-    // Usar fetch nativo do Node.js (disponível a partir do Node 18)
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-        to: to,
-        subject: subject,
-        html: html
-      })
+    // Envia um email em modo sandbox (não sai do SendGrid), valida credenciais e payload
+    await sgMail.send({
+      to: FROM_EMAIL || 'test@example.com',
+      from: FROM_EMAIL ? { email: FROM_EMAIL, name: 'Sistema SISA (TEST)' } : 'test@example.com',
+      subject: 'Test - SendGrid connection check',
+      text: 'Sandbox test',
+      mailSettings: { sandboxMode: { enable: true } }
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Resend API error: ${response.status} - ${error}`);
-    }
-
-    const result = await response.json();
-    console.log('✅ Email enviado via Resend:', result.id);
-    return { success: true, messageId: result.id };
+    console.log('✅ SendGrid API está acessível (sandbox test passou)');
+    return true;
   } catch (error) {
-    console.error('❌ Erro Resend API:', error);
-    throw error;
-  }
-};
-
-// Fallback para Gmail (desenvolvimento)
-const sendEmailWithGmail = async (to, subject, html) => {
-  const nodemailer = require('nodemailer');
-  
-  const transporter = nodemailer.createTransporter({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
-
-  const mailOptions = {
-    from: `"Sistema SISA" <${process.env.EMAIL_USER}>`,
-    to: to,
-    subject: subject,
-    html: html,
-    encoding: 'utf8'
-  };
-
-  const result = await transporter.sendMail(mailOptions);
-  return { success: true, messageId: result.messageId };
-};
-
-// Função principal para enviar email
-const sendEmail = async (to, subject, html) => {
-  console.log(`📧 Enviando email para: ${to}`);
-  console.log(`📧 Assunto: ${subject}`);
-  
-  try {
-    // Usar Resend em produção se a API key estiver configurada
-    if (process.env.NODE_ENV === 'production' && process.env.RESEND_API_KEY) {
-      console.log('📧 Usando Resend API');
-      return await sendEmailWithResend(to, subject, html);
-    } else {
-      console.log('📧 Usando Gmail SMTP (desenvolvimento)');
-      return await sendEmailWithGmail(to, subject, html);
-    }
-  } catch (error) {
-    console.error('❌ Erro ao enviar email:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-// Função para testar a conexão
-const testConnection = async () => {
-  try {
-    if (process.env.NODE_ENV === 'production' && process.env.RESEND_API_KEY) {
-      // Testar Resend API
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-          to: 'test@example.com',
-          subject: 'Test Connection',
-          html: '<p>Test</p>'
-        })
-      });
-      
-      // Mesmo que dê erro de email inválido, se a API key estiver correta, o status será diferente de 401
-      if (response.status === 401) {
-        throw new Error('API Key inválida');
-      }
-      
-      console.log('✅ Resend API conectada com sucesso!');
-      return true;
-    } else {
-      // Testar Gmail
-      const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransporter({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-      
-      await transporter.verify();
-      console.log('✅ Gmail SMTP conectado com sucesso!');
-      return true;
-    }
-  } catch (error) {
-    console.error('❌ Erro na conexão com servidor de email:', error.message);
+    console.error('❌ Falha ao validar SendGrid API:', error?.response?.body || error.message || error);
     return false;
   }
 };
 
 // Enviar email de redefinição de senha
 const sendPasswordResetEmail = async (email, resetToken, userName) => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('❌ SENDGRID_API_KEY ausente');
+    return { success: false, error: 'SENDGRID_API_KEY não configurado' };
+  }
+  if (!FROM_EMAIL) {
+    console.error('❌ Remetente não configurado (SENDGRID_FROM_EMAIL/EMAIL_USER)');
+    return { success: false, error: 'Remetente não configurado' };
+  }
+
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-  const html = getPasswordResetTemplate(userName, resetUrl);
-  
-  return await sendEmail(email, '🔐 Redefinição de Senha - SISA', html);
+  const msg = {
+    to: email,
+    from: { email: FROM_EMAIL, name: 'Sistema SISA' },
+    subject: '🔐 Redefinição de Senha - SISA',
+    html: getPasswordResetTemplate(userName, resetUrl)
+  };
+
+  try {
+    console.log(`📧 Enviando email de reset para: ${email}`);
+    const [result] = await sgMail.send(msg);
+    console.log('✅ Email de reset enviado com sucesso:', result?.headers?.['x-message-id'] || result?.headers?.['x-message-id'] || 'sent');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de reset:', error?.response?.body || error.message || error);
+    return { success: false, error: error.message };
+  }
 };
 
 // Enviar email de primeiro acesso
 const sendFirstAccessEmail = async (email, resetToken, userName) => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('❌ SENDGRID_API_KEY ausente');
+    return { success: false, error: 'SENDGRID_API_KEY não configurado' };
+  }
+  if (!FROM_EMAIL) {
+    console.error('❌ Remetente não configurado (SENDGRID_FROM_EMAIL/EMAIL_USER)');
+    return { success: false, error: 'Remetente não configurado' };
+  }
+
   const resetUrl = `${process.env.FRONTEND_URL}/first-access/${resetToken}`;
-  const html = getWelcomeTemplate(userName, resetUrl);
-  
-  return await sendEmail(email, '🎉 Bem-vindo ao SISA - Defina sua senha', html);
+  const msg = {
+    to: email,
+    from: { email: FROM_EMAIL, name: 'Sistema SISA' },
+    subject: '🎉 Bem-vindo ao SISA - Defina sua senha',
+    html: getWelcomeTemplate(userName, resetUrl)
+  };
+
+  try {
+    console.log(`📧 Enviando email de primeiro acesso para: ${email}`);
+    const [result] = await sgMail.send(msg);
+    console.log('✅ Email de primeiro acesso enviado com sucesso:', result?.headers?.['x-message-id'] || 'sent');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de primeiro acesso:', error?.response?.body || error.message || error);
+    return { success: false, error: error.message };
+  }
 };
 
 // Enviar email de notificação de cadastro
 const sendRegistrationNotificationEmail = async (email, userName) => {
-  const html = getRegistrationNotificationTemplate(userName, email);
-  
-  return await sendEmail(email, '✅ Cadastro Realizado com Sucesso - SISA', html);
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('❌ SENDGRID_API_KEY ausente');
+    return { success: false, error: 'SENDGRID_API_KEY não configurado' };
+  }
+  if (!FROM_EMAIL) {
+    console.error('❌ Remetente não configurado (SENDGRID_FROM_EMAIL/EMAIL_USER)');
+    return { success: false, error: 'Remetente não configurado' };
+  }
+
+  const msg = {
+    to: email,
+    from: { email: FROM_EMAIL, name: 'Sistema SISA' },
+    subject: '✅ Cadastro Realizado com Sucesso - SISA',
+    html: getRegistrationNotificationTemplate(userName, email)
+  };
+
+  try {
+    console.log(`📧 Enviando email de notificação para: ${email}`);
+    const [result] = await sgMail.send(msg);
+    console.log('✅ Email de notificação enviado com sucesso:', result?.headers?.['x-message-id'] || 'sent');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de notificação:', error?.response?.body || error.message || error);
+    return { success: false, error: error.message };
+  }
 };
 
 module.exports = {
