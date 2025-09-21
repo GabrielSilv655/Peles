@@ -50,6 +50,7 @@ body {
   font-size: 16px;
   line-height: 1.6;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden; /* evita overflow horizontal em telas estreitas */
 }
 
 /* Usado para desabilitar rolagem apenas no Login */
@@ -745,6 +746,7 @@ h2 {
     padding: 0.8rem 1rem;
     flex-direction: column;
     gap: 1rem;
+    height: auto; /* permite aumentar altura conforme conteúdo em telas estreitas */
   }
 
   .navbar-links {
@@ -792,7 +794,7 @@ h2 {
     top: 1rem;
     left: 0.001rem;
     z-index: 997;
-    pointer-events: none;
+    pointer-events: auto; /* permitir clique no seletor de idioma em telas pequenas */
     transform: scale(0.8);
   }
 
@@ -829,6 +831,28 @@ h2 {
 
   .toggle-group {
     transform: scale(0.7);
+  }
+
+  /* Ajustes de responsividade para abas de permissões e granular em telas muito estreitas */
+  .permission-sub-tabs {
+    flex-wrap: wrap;
+  }
+  .permission-tab {
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+    flex: 1 1 100%;
+  }
+  .granular-tabs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .granular-tab {
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+    flex: 1 1 100%;
+    text-align: center;
   }
 
   /* Ajustes específicos para telas muito pequenas */
