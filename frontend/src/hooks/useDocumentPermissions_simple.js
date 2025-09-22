@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+
+const DEBUG = process.env.REACT_APP_DEBUG === 'true';
 import API from '../api';
 import { filterAllowedLayouts, filterAllowedDocuments, canAccessLayout, canAccessDocument } from '../utils/granularPermissions';
 
@@ -17,10 +19,12 @@ export const useDocumentPermissions = () => {
       const userId = localStorage.getItem("id");
       const occupationId = localStorage.getItem("occupation_id");
       
-      console.log('=== CARREGANDO PERMISSÕES ===');
-      console.log('User ID:', userId);
-      console.log('Occupation ID:', occupationId);
-      console.log('Occupation ID Type:', typeof occupationId);
+      if (DEBUG) {
+        console.log('=== CARREGANDO PERMISSÕES ===');
+        console.log('User ID:', userId);
+        console.log('Occupation ID:', occupationId);
+        console.log('Occupation ID Type:', typeof occupationId);
+      }
       
       // Determinar role do usuário - verificar tanto string quanto number E nomes diretos
       let role = null;
@@ -37,18 +41,22 @@ export const useDocumentPermissions = () => {
         role = "administrador";
       }
       
-      console.log('🔍 Mapeamento de occupation_id:');
-      console.log('  Original:', occupationId);
-      console.log('  Uppercase:', occupationIdUpper);
-      console.log('  Role determinado:', role);
+      if (DEBUG) {
+        console.log('🔍 Mapeamento de occupation_id:');
+        console.log('  Original:', occupationId);
+        console.log('  Uppercase:', occupationIdUpper);
+        console.log('  Role determinado:', role);
+      }
       
       setUserRole(role);
       const isAdminUser = occupationId === "1" || occupationId === 1 || 
                           occupationIdUpper === "ADMINISTRADOR" || occupationIdUpper === "ADMIN";
       setIsAdmin(isAdminUser);
 
-      console.log('User Role Determinado:', role);
-      console.log('Is Admin:', isAdminUser);
+      if (DEBUG) {
+        console.log('User Role Determinado:', role);
+        console.log('Is Admin:', isAdminUser);
+      }
       
       // ALERTA se a função não foi determinada corretamente
       if (!role) {
@@ -59,7 +67,7 @@ export const useDocumentPermissions = () => {
 
       // Administradores têm acesso total
       if (isAdminUser) {
-        console.log('USUÁRIO É ADMIN - ACESSO TOTAL');
+        if (DEBUG) console.log('USUÁRIO É ADMIN - ACESSO TOTAL');
         setPermissions({
           can_access_documents: true,
           layout_view_roles: ['professor', 'colaborador'],
@@ -74,12 +82,12 @@ export const useDocumentPermissions = () => {
       }
 
       if (userId) {
-        console.log('BUSCANDO PERMISSÕES EFETIVAS DA API...');
+        if (DEBUG) console.log('BUSCANDO PERMISSÕES EFETIVAS DA API...');
         
         try {
           // Buscar somente a fonte de verdade (linha da tabela permissions)
           const response = await API.get(`/permissions/${userId}`);
-          if (process.env.NODE_ENV !== 'production') {
+          if (DEBUG) {
             console.log('RESPOSTA DA API (permissions):', response.data);
           }
           setPermissions(response.data);
@@ -87,32 +95,32 @@ export const useDocumentPermissions = () => {
           console.error('ERRO ao buscar permissões efetivas:', effectiveError);
           
           // Fallback: permissões individuais
-          console.log('FALLBACK: BUSCANDO PERMISSÕES INDIVIDUAIS...');
+          if (DEBUG) console.log('FALLBACK: BUSCANDO PERMISSÕES INDIVIDUAIS...');
           const response = await API.get(`/permissions/${userId}`);
-          console.log('RESPOSTA DA API (INDIVIDUAIS):', response.data);
+          if (DEBUG) console.log('RESPOSTA DA API (INDIVIDUAIS):', response.data);
           setPermissions(response.data);
         }
         
         // TAMBÉM carregar restrições granulares do banco de dados
         try {
-          if (process.env.NODE_ENV !== 'production') {
+          if (DEBUG) {
             console.log('🔧 CARREGANDO RESTRIÇÕES GRANULARES DO BANCO...');
           }
           const restrictionsResponse = await API.get(`/granular-permissions/${userId}/${role}`);
           const restrictions = restrictionsResponse.data;
-          if (process.env.NODE_ENV !== 'production') {
+          if (DEBUG) {
             console.log('🔧 Restrições granulares carregadas:', restrictions);
           }
           
           // Salvar no localStorage para uso pelas funções de filtro
           const storageKey = `restrictions_${userId}_${role}`;
           localStorage.setItem(storageKey, JSON.stringify(restrictions));
-          if (process.env.NODE_ENV !== 'production') {
+          if (DEBUG) {
             console.log(`🔧 Restrições salvas no localStorage: ${storageKey}`);
           }
           
         } catch (restrictionsError) {
-          if (process.env.NODE_ENV !== 'production') {
+          if (DEBUG) {
             console.log('⚠️ Erro ao carregar restrições granulares:', restrictionsError.response?.status);
           }
           // Se não conseguir carregar do banco, manter o que está no localStorage
@@ -132,7 +140,7 @@ export const useDocumentPermissions = () => {
 
   // Usar useMemo para criar versões estáveis das funções
   const permissionFunctions = useMemo(() => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (DEBUG) {
       console.log('🔄 RECALCULANDO FUNÇÕES DE PERMISSÃO');
       console.log('- isAdmin:', isAdmin);
       console.log('- userRole:', userRole);
@@ -141,26 +149,26 @@ export const useDocumentPermissions = () => {
 
     const canAccessDocuments = () => {
       if (isAdmin) {
-        if (process.env.NODE_ENV !== 'production') console.log('✅ ADMIN - ACESSO TOTAL A DOCUMENTOS');
+        if (DEBUG) console.log('✅ ADMIN - ACESSO TOTAL A DOCUMENTOS');
         return true;
       }
       const result = permissions.can_access_documents === true;
-      if (process.env.NODE_ENV !== 'production') console.log('🔍 canAccessDocuments result:', result);
+      if (DEBUG) console.log('🔍 canAccessDocuments result:', result);
       return result;
     };
 
     const canViewLayouts = () => {
       if (isAdmin) {
-        if (process.env.NODE_ENV !== 'production') console.log('✅ ADMIN - PODE VER LAYOUTS');
+        if (DEBUG) console.log('✅ ADMIN - PODE VER LAYOUTS');
         return true;
       }
       if (!permissions.can_access_documents) {
-        if (process.env.NODE_ENV !== 'production') console.log('❌ SEM ACESSO GERAL A DOCUMENTOS');
+        if (DEBUG) console.log('❌ SEM ACESSO GERAL A DOCUMENTOS');
         return false;
       }
       const rolePermissions = permissions.layout_view_roles || [];
       const result = userRole && rolePermissions.includes(userRole);
-      if (process.env.NODE_ENV !== 'production') console.log('🔍 canViewLayouts - userRole:', userRole, 'roles:', rolePermissions, 'result:', result);
+      if (DEBUG) console.log('🔍 canViewLayouts - userRole:', userRole, 'roles:', rolePermissions, 'result:', result);
       return result;
     };
 
@@ -180,16 +188,16 @@ export const useDocumentPermissions = () => {
 
     const canEditLayouts = () => {
       if (isAdmin) {
-        if (process.env.NODE_ENV !== 'production') console.log('✅ ADMIN - PODE EDITAR LAYOUTS');
+        if (DEBUG) console.log('✅ ADMIN - PODE EDITAR LAYOUTS');
         return true;
       }
       if (!permissions.can_access_documents) {
-        if (process.env.NODE_ENV !== 'production') console.log('❌ SEM ACESSO GERAL A DOCUMENTOS - NÃO PODE EDITAR LAYOUTS');
+        if (DEBUG) console.log('❌ SEM ACESSO GERAL A DOCUMENTOS - NÃO PODE EDITAR LAYOUTS');
         return false;
       }
       const rolePermissions = permissions.layout_edit_roles || [];
       const result = userRole && rolePermissions.includes(userRole);
-      if (process.env.NODE_ENV !== 'production') console.log('🔍 canEditLayouts - userRole:', userRole, 'roles:', rolePermissions, 'result:', result);
+      if (DEBUG) console.log('🔍 canEditLayouts - userRole:', userRole, 'roles:', rolePermissions, 'result:', result);
       return result;
     };
 
@@ -211,7 +219,7 @@ export const useDocumentPermissions = () => {
     const filterLayoutsWithGranularPermissions = (layouts) => {
       const userId = localStorage.getItem("id");
       
-      if (process.env.NODE_ENV !== 'production') {
+      if (DEBUG) {
         console.log('🔍 === INICIANDO FILTRO GRANULAR DE LAYOUTS ===');
         console.log('User ID do localStorage:', userId);
         console.log('User Role determinado:', userRole);
@@ -219,7 +227,7 @@ export const useDocumentPermissions = () => {
       }
       
       if (!userId || !userRole) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (DEBUG) {
           console.log('❌ FALTAM DADOS - userId ou userRole não definidos');
           console.log('Retornando layouts sem filtro');
         }
@@ -227,7 +235,7 @@ export const useDocumentPermissions = () => {
       }
       
       const filtered = filterAllowedLayouts(layouts, parseInt(userId), userRole);
-      if (process.env.NODE_ENV !== 'production') {
+      if (DEBUG) {
         console.log('Layouts após filtro granular:', filtered.length);
         console.log('🔍 === FIM FILTRO GRANULAR DE LAYOUTS ===');
       }
@@ -238,7 +246,7 @@ export const useDocumentPermissions = () => {
     const filterDocumentsWithGranularPermissions = (documents) => {
       const userId = localStorage.getItem("id");
       
-      if (process.env.NODE_ENV !== 'production') {
+      if (DEBUG) {
         console.log('🔍 === INICIANDO FILTRO GRANULAR DE DOCUMENTOS ===');
         console.log('User ID do localStorage:', userId);
         console.log('User Role determinado:', userRole);
@@ -255,7 +263,7 @@ export const useDocumentPermissions = () => {
       }
       
       if (!userId || !userRole) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (DEBUG) {
           console.log('❌ FALTAM DADOS - userId ou userRole não definidos');
           console.log('Retornando documentos sem filtro');
         }
@@ -263,7 +271,7 @@ export const useDocumentPermissions = () => {
       }
       
       const filtered = filterAllowedDocuments(documents, parseInt(userId), userRole);
-      if (process.env.NODE_ENV !== 'production') {
+      if (DEBUG) {
         console.log('Documentos após filtro granular:', filtered.length);
         filtered.forEach((doc, index) => {
           console.log(`✅ Documento filtrado ${index + 1}:`, {

@@ -1,5 +1,9 @@
 import axios from "axios";
 
+// Flag opcional para habilitar logs de debug no frontend
+// Defina REACT_APP_DEBUG=true no .env do frontend se quiser ver logs
+const DEBUG = process.env.REACT_APP_DEBUG === 'true';
+
 // Detectar se estamos realmente em produção baseado na URL atual
 const isActuallyProduction = typeof window !== 'undefined' && 
   (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
@@ -12,8 +16,8 @@ const base_url = process.env.REACT_APP_API_URL ||
     : "http://localhost:5000/api" // Local development fallback
 );
 
-// Log base URL selected (helps diagnose frontend-backend connectivity)
-if (typeof window !== 'undefined') {
+// Log base URL somente quando DEBUG estiver ativo
+if (typeof window !== 'undefined' && DEBUG) {
   console.log('[CONNECTIVITY] NODE_ENV=', process.env.NODE_ENV);
   console.log('[CONNECTIVITY] window.location.hostname=', window.location.hostname);
   console.log('[CONNECTIVITY] isActuallyProduction=', isActuallyProduction);
@@ -43,18 +47,21 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('[API_ERROR] Erro na requisição:', error?.message || error);
-    console.error('[API_ERROR] BaseURL:', API.defaults.baseURL);
-    console.error('[API_ERROR] Full URL:', (error?.config?.baseURL || '') + (error?.config?.url || ''));
-    console.error('[API_ERROR] Method:', error.config?.method);
-    console.error('[API_ERROR] Status:', error.response?.status);
-    console.error('[API_ERROR] Data:', error.response?.data);
+    if (DEBUG) {
+      console.error('[API_ERROR] Erro na requisição:', error?.message || error);
+      console.error('[API_ERROR] BaseURL:', API.defaults.baseURL);
+      console.error('[API_ERROR] Full URL:', (error?.config?.baseURL || '') + (error?.config?.url || ''));
+      console.error('[API_ERROR] Method:', error.config?.method);
+      console.error('[API_ERROR] Status:', error.response?.status);
+      console.error('[API_ERROR] Data:', error.response?.data);
+    }
     return Promise.reject(error);
   }
 );
 
 // Simple connectivity test helper: tries health endpoints and logs results
 export async function testConnectivity() {
+  if (!DEBUG) return; // não logar em produção
   const endpoints = [
     '/healthz',
     '/test',
@@ -72,10 +79,9 @@ export async function testConnectivity() {
   }
 }
 
-// Attach to window for manual triggering from DevTools
-if (typeof window !== 'undefined') {
+// Anexar somente em modo de debug
+if (typeof window !== 'undefined' && DEBUG) {
   window.__SISA_TEST_CONNECTIVITY__ = testConnectivity;
-  // Auto-run on load when actually in production to surface issues early
   if (isActuallyProduction) {
     testConnectivity();
   }
