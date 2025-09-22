@@ -251,7 +251,7 @@ export default function LayoutsList({ layouts, loading, onSelectLayout, onDelete
                   <div className="metadata-item">
                     <span className="metadata-icon">🏷️</span>
                     <span className="metadata-text">
-                      {placeholdersArray.length} campo(s)
+                      {placeholdersArray.length} {language === "english" ? "field(s)" : "campo(s)"}
                     </span>
                   </div>
                 )}

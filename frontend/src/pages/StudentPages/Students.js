@@ -73,7 +73,8 @@ export default function Students() {
       const searchTermLower = searchTerm.toLowerCase();
       filtered = filtered.filter(student =>
         student.name.toLowerCase().includes(searchTermLower) ||
-        String(student.registration).toLowerCase().includes(searchTermLower) ||
+        String(student.registration ?? '').toLowerCase().includes(searchTermLower) ||
+        String(student.id ?? '').toLowerCase().includes(searchTermLower) ||
         (student.email && student.email.toLowerCase().includes(searchTermLower))
       );
     }
@@ -83,8 +84,12 @@ export default function Students() {
         return false;
       }
 
-      if (filters.registration && !String(student.registration).includes(filters.registration)) {
-        return false;
+      if (filters.registration) {
+        const regStr = String(student.registration ?? '');
+        const idStr = String(student.id ?? '');
+        if (!regStr.includes(filters.registration) && !idStr.includes(filters.registration)) {
+          return false;
+        }
       }
 
       if (filters.isActive !== 'all' && student.active !== (filters.isActive === 'true')) {
@@ -219,7 +224,7 @@ export default function Students() {
         <div className="student-detail-content">
           <div className="student-detail-header">
             <h3>{selectedStudent.name}</h3>
-            <p><strong>{language === "english" ? "Registration" : "Matrícula"}:</strong> {selectedStudent.id}</p>
+            <p><strong>{language === "english" ? "Registration" : "Matrícula"}:</strong> {selectedStudent.registration || selectedStudent.id}</p>
           </div>
 
           <div className="student-detail-sections">
@@ -425,7 +430,7 @@ export default function Students() {
             <div className="student-info">
               <div className="student-name">{student.name}</div>
               <div className="student-details">
-                <p>{language === "english" ? "Registration" : "Matrícula"}: {student.id}</p>
+                <p>{language === "english" ? "Registration" : "Matrícula"}: {student.registration || student.id}</p>
                 {student.email && <p>Idade: {getAge(student.birth_date)}</p>}
               </div>
               <div className="student-status">
