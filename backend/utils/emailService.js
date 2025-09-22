@@ -15,6 +15,32 @@ if (process.env.SENDGRID_API_KEY) {
 
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER; // precisa ser remetente verificado no SendGrid
 
+// Helper para montar URLs do frontend sem barras duplicadas e com protocolo
+function normalizeBaseUrl(base) {
+  if (!base) return '';
+  let b = String(base).trim();
+  // remover espaços e barras finais
+  b = b.replace(/\s+/g, '');
+  b = b.replace(/\/+$/, '');
+  // garantir protocolo
+  if (!/^https?:\/\//i.test(b)) {
+    b = 'https://' + b;
+  }
+  return b;
+}
+
+function buildFrontendLink(pathname, queryObj) {
+  const base = normalizeBaseUrl(process.env.FRONTEND_URL);
+  const path = ('/' + String(pathname || '').replace(/^\/+/, '')).replace(/\/+$/, '');
+  const url = new URL(base + path);
+  if (queryObj && typeof queryObj === 'object') {
+    Object.entries(queryObj).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+    });
+  }
+  return url.toString();
+}
+
 // Função para testar a "conexão" (validação de credenciais) usando sandbox_mode do SendGrid
 const testConnection = async () => {
   if (!process.env.SENDGRID_API_KEY) {
@@ -51,7 +77,7 @@ const sendPasswordResetEmail = async (email, resetToken, userName) => {
     return { success: false, error: 'Remetente não configurado' };
   }
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  const resetUrl = buildFrontendLink('/reset-password', { token: resetToken });
   const msg = {
     to: email,
     from: { email: FROM_EMAIL, name: 'Sistema SISA' },
@@ -81,7 +107,7 @@ const sendFirstAccessEmail = async (email, resetToken, userName) => {
     return { success: false, error: 'Remetente não configurado' };
   }
 
-  const resetUrl = `${process.env.FRONTEND_URL}/first-access/${resetToken}`;
+  const resetUrl = buildFrontendLink(`/first-access/${encodeURIComponent(resetToken)}`);
   const msg = {
     to: email,
     from: { email: FROM_EMAIL, name: 'Sistema SISA' },
