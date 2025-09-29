@@ -1,0 +1,33 @@
+{
+  "dependencies": {},
+  "scripts": {
+    "install-all": "node install-all.js",
+    "install-backend": "cd backend && npm install",
+    "install-frontend": "cd frontend && npm install",
+    "setup": "node install-all.js",
+    "start": "concurrently --kill-others-on-fail \"npm run start-backend\" \"npm run start-frontend\"",
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm start",
+    "dev": "concurrently --kill-others-on-fail \"npm run dev-backend\" \"npm run start-frontend\"",
+    "dev-backend": "cd backend && npm run dev",
+    "clean": "rimraf node_modules backend/node_modules frontend/node_modules",
+    "clean-install": "npm run clean && npm run setup"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "react-scripts": "^5.0.1",
+    "rimraf": "^5.0.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
