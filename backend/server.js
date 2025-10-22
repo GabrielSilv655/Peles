@@ -4,6 +4,8 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 dotenv.config();
 const path = require("path");
+const os = require("os");
+const axios = require("axios");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -199,6 +201,55 @@ app.get("/api", (req, res) => {
 });
 app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
+});
+
+// Endpoint de diagnóstico para verificação bidirecional
+app.get("/api/diagnostics", async (req, res) => {
+  try {
+    const origin = req.get('origin') || null;
+    const host = req.get('host') || null;
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = forwardedProto || req.protocol || (useHTTPS ? 'https' : 'http');
+    const backendApiBase = host ? `${protocol}://${host}/api` : null;
+
+    // Reconstroi lista de origens permitidas como na configuração do CORS
+    const allowedOrigins = (process.env.NODE_ENV === 'production')
+      ? [FRONTEND_URL, 'https://sisa-project.up.railway.app', 'https://amused-friendship-production.up.railway.app'].filter(Boolean)
+      : ['https://localhost:3000', 'https://127.0.0.1:3000',
+         'http://localhost:3000', 'http://127.0.0.1:3000',
+         'https://localhost:8080', 'https://127.0.0.1:8080',
+         'http://localhost:8080', 'http://127.0.0.1:8080'];
+
+    const frontendEnv = (process.env.FRONTEND_URL || '').replace(/\/$/, '') || null;
+    const frontendProbeUrl = frontendEnv || 'https://sisa-project.up.railway.app';
+
+    let frontendReachable = null;
+    let frontendStatus = null;
+    try {
+      const ping = await axios.get(frontendProbeUrl, { timeout: 4000 });
+      frontendReachable = true;
+      frontendStatus = ping.status;
+    } catch (e) {
+      frontendReachable = false;
+      frontendStatus = e?.response?.status || null;
+    }
+
+    res.json({
+      diagnostics: 'ok',
+      node_env: process.env.NODE_ENV || 'development',
+      serverHostname: os.hostname(),
+      request: { origin, host, protocol, forwardedProto },
+      backend: { apiBase: backendApiBase },
+      frontend: {
+        envConfiguredUrl: frontendEnv,
+        probe: { tried: frontendProbeUrl, reachable: frontendReachable, status: frontendStatus }
+      },
+      cors: { allowedOrigins },
+      time: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: true, message: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
