@@ -192,6 +192,9 @@ app.get("/", (req, res) => {
   res.send("SISA API is running.");
 });
 
+app.get("/api", (req, res) => {
+  res.send("SISA API is running.");
+});
 app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
 });
