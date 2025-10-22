@@ -1,0 +1,192 @@
+.student-form-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.student-form {
+  background: var(--surface-color);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.form-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.form-header h2 {
+  margin: 0;
+  text-align: center !important;
+}
+
+.back-button {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: rgba(63, 81, 181, 0.1);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: flex;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.radio-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+}
+
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cancel-button {
+  background-color: var(--error-color);
+  width: 170px;
+  height: 50px;
+}
+
+.submit-button {
+  background-color: var(--success-color);
+  width: 170px;
+  height: 50px;
+}
+
+@media (max-width: 768px) {
+  .subject-creation-container {
+    padding: 1rem;
+  }
+
+  .subject-form {
+    padding: 1.5rem;
+  }
+
+  .date-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .back-button {
+    display: flex;
+    justify-content: left;
+    width: 75px;
+  }
+} 
+
+.dob-input {
+  width: 100%;
+  padding: 1.1rem;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  padding-right: 2.5rem; /* space for calendar button */
+}
+
+.dob-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.calendar-button {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--primary-color);
+}
+
+/* Hide native calendar icon so only our button shows */
+.dob-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.dob-input::-webkit-clear-button,
+.dob-input::-webkit-inner-spin-button {
+  display: none;
+}
+input.dob-input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+}
