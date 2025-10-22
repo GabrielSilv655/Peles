@@ -144,9 +144,12 @@ try {
 // Configuração CORS mais detalhada
 if (process.env.NODE_ENV === 'production') {
   const allowed = [FRONTEND_URL, 'https://sisa-project.up.railway.app', 'https://amused-friendship-production.up.railway.app'].filter(Boolean);
+  console.log('CORS prod allowed origins:', allowed);
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowed.includes(origin)) return callback(null, true);
+      const isAllowed = !origin || allowed.includes(origin);
+      console.log('CORS prod check:', { origin, isAllowed });
+      if (isAllowed) return callback(null, true);
       return callback(new Error(`CORS: Origin ${origin} not allowed`));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -155,12 +158,14 @@ if (process.env.NODE_ENV === 'production') {
   }));
 } else {	
   // Suporta tanto HTTP quanto HTTPS em desenvolvimento
-  app.use(cors({
-    origin: ['https://localhost:3000', 'https://127.0.0.1:3000', 
+  const devAllowed = ['https://localhost:3000', 'https://127.0.0.1:3000', 
              'http://localhost:3000', 'http://127.0.0.1:3000',
              'https://localhost:8080', 'https://127.0.0.1:8080',
              'http://localhost:8080', 'http://127.0.0.1:8080',
-             'https://sisa-project.up.railway.app'],
+             'https://sisa-project.up.railway.app'];
+  console.log('CORS dev allowed origins:', devAllowed);
+  app.use(cors({
+    origin: devAllowed,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -202,6 +207,18 @@ app.get("/api", (req, res) => {
 });
 app.get("/api/test", (req, res) => {
   res.json({ message: "API está funcionando!" });
+});
+
+app.get("/api/echo", (req, res) => {
+  try {
+    const origin = req.get('origin') || null;
+    const host = req.get('host') || null;
+    const headers = req.headers;
+    console.log('[/api/echo] hit', { origin, host });
+    res.json({ ok: true, origin, host, headersSummary: { 'user-agent': headers['user-agent'], 'x-forwarded-for': headers['x-forwarded-for'] } });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // Endpoint de diagnóstico para verificação bidirecional
