@@ -57,6 +57,44 @@ import API from './api';
   }
 })();
 
+// Verificação simples de conectividade entre frontend e backend (Railway)
+(async function sisaSimpleCheck() {
+  try {
+    const frontendOrigin = window.location.origin;
+    const baseURL = API.defaults.baseURL || '';
+    const isFrontendRailway = /railway\.app/.test(frontendOrigin);
+    const isBackendRailway = /railway\.app/.test(baseURL);
+
+    console.log('[SISA-SIMPLE] Frontend origin:', frontendOrigin, 'isRailway:', isFrontendRailway);
+    console.log('[SISA-SIMPLE] Backend baseURL:', baseURL, 'isRailway:', isBackendRailway);
+
+    const testResp = await API.get('/test');
+    const testOk = testResp?.status === 200;
+
+    let echoOk = false;
+    try {
+      const echoResp = await API.get('/echo');
+      echoOk = echoResp?.status === 200 && echoResp?.data?.ok === true;
+      console.log('[SISA-SIMPLE] /api/echo:', echoResp?.data);
+    } catch (e) {
+      if (e?.response?.status === 404) {
+        console.warn('[SISA-SIMPLE] /api/echo não existe, seguindo apenas com /api/test.');
+      } else {
+        console.warn('[SISA-SIMPLE] Falha em /api/echo', { status: e?.response?.status, data: e?.response?.data });
+      }
+    }
+
+    const connected = testOk || echoOk;
+    console.log('[SISA-SIMPLE] Conectado ao backend:', connected);
+
+    if (isFrontendRailway && !isBackendRailway) {
+      console.warn('[SISA-SIMPLE] Frontend em Railway, mas API baseURL não é Railway. Verifique REACT_APP_API_BASE_URL.');
+    }
+  } catch (err) {
+    console.error('[SISA-SIMPLE] Falha na verificação simples', { status: err?.response?.status, data: err?.response?.data, message: err?.message });
+  }
+})();
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
     <ThemeProvider>
