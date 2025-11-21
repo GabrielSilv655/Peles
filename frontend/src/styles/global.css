@@ -61,7 +61,7 @@ body.no-scroll {
 .navbar {
   background-color: var(--primary-color);
   padding: 0.8rem 2rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(107, 107, 107, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -70,6 +70,68 @@ body.no-scroll {
   align-items: center;
   width: 100%;
   min-height: 60px;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  flex: 1;
+}
+
+.navbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.logo-nav-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  width: 60px;
+  height: 60px;
+  transform: translateY(-10px);
+}
+
+.logo-nav-btn:hover {
+  transform: translateY(-10px) !important;
+  filter: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.logo-nav-btn:focus {
+  outline: none;
+  box-shadow: none;
+  background-color: transparent !important;
+}
+
+.logo-nav-btn:active {
+  transform: translateY(-10px) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.logo-nav-btn:hover img {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.logo-nav-btn img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
 }
 
 /* Botão único de alternância de tema no canto superior direito */
