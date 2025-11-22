@@ -97,7 +97,7 @@ body.no-scroll {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: default;
+  cursor: pointer;
   width: 60px;
   height: 60px;
   transform: translateY(-10px);
@@ -105,7 +105,6 @@ body.no-scroll {
 
 .logo-nav-btn:hover {
   transform: translateY(-10px) !important;
-  filter: none !important;
   background-color: transparent !important;
   box-shadow: none !important;
   opacity: 1 !important;
@@ -121,20 +120,21 @@ body.no-scroll {
   transform: translateY(-10px) !important;
   background-color: transparent !important;
   box-shadow: none !important;
+  filter: brightness(0.75) !important;
 }
 
 .logo-nav-btn:hover img {
+  transform: translateY(-1px) !important;
   opacity: 1 !important;
-  filter: none !important;
 }
 
 .logo-nav-btn img {
   width: 100px;
   height: 100px;
+  margin-top: 10px;
   object-fit: contain;
 }
 
-/* Botão único de alternância de tema no canto superior direito */
 .theme-toggle-btn {
   position: fixed;
   top: 12px;
