@@ -68,7 +68,6 @@ CREATE TABLE IF NOT EXISTS students (
     active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (parent_id) REFERENCES parent(id),
     FOREIGN KEY (second_parent_id) REFERENCES parent(id),
-    FOREIGN KEY (responsible_parent_id) REFERENCES parent(id),
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_active (active),

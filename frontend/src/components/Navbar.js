@@ -59,25 +59,6 @@ export default function Navbar() {
               ☰ Menu
             </button>
             <Sidebar isOpen={menuAberto} onClose={() => setMenuAberto(false)} />
-            {/* Language Toggle (sem wrapper adicional) */}
-            <div className="toggle-group">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Flag_of_Brazil.svg/960px-Flag_of_Brazil.svg.png"
-                alt="Português"
-              />
-              <label className="switch">
-                <input 
-                  type="checkbox" 
-                  onChange={handleLanguageChange}
-                  checked={isLanguageChecked} 
-                />
-                <span className="slider round"></span>
-              </label>
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Flag_of_the_United_States.svg"
-                alt="English"
-              />
-            </div>
           </div>
         )}
         {/* Seletor de idioma APENAS para páginas de redefinição de senha */}

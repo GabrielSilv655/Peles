@@ -8,7 +8,8 @@ export default function Sidebar({ isOpen, onClose }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [permissions, setPermissions] = useState({});
   const location = useLocation();
-  const { language } = useLanguage();
+  const { language, changeLanguage } = useLanguage();
+  const [isLanguageChecked, setIsLanguageChecked] = useState(localStorage.getItem("language") === "english");
 
   const isActive = (path) => (location.pathname === path ? "active" : "");
 
@@ -29,6 +30,9 @@ export default function Sidebar({ isOpen, onClose }) {
     if (token) {
       loadUserPermissions();
     }
+    // Sincronizar o checkbox com o idioma armazenado
+    const currentLanguage = localStorage.getItem("language");
+    setIsLanguageChecked(currentLanguage === "english");
   }, [location]);
 
   const loadUserPermissions = async () => {
@@ -113,6 +117,12 @@ export default function Sidebar({ isOpen, onClose }) {
     return permissions[permission] === true;
   };
 
+  const handleLanguageChange = (e) => {
+    const newLanguage = e.target.checked ? 'english' : 'portugues';
+    changeLanguage(newLanguage);
+    setIsLanguageChecked(e.target.checked);
+  };
+
   return (
     <>
       {isOpen && <div className="overlay" onClick={onClose} />}
@@ -134,46 +144,66 @@ export default function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
 
           {hasPermission('can_access_dashboard') && (
-            <Link to="/dashboard" className={isActive("/dashboard")}>
+            <Link to="/dashboard" className={isActive("/dashboard")} onClick={handleNavClick}>
               <span role="img" aria-label="Início">🏠</span> 
               {language === "english" ? "Dashboard" : "Início"}
             </Link>
           )}
 
           {hasPermission('can_access_users') && (
-            <Link to="/users" className={isActive("/users")}>
+            <Link to="/users" className={isActive("/users")} onClick={handleNavClick}>
               <span role="img" aria-label="Usuários">👥</span> 
               {language === "english" ? "Users" : "Usuários"}
             </Link>
           )}
 
           {hasPermission('can_access_students') && (
-            <Link to="/students" className={isActive("/students")}>
+            <Link to="/students" className={isActive("/students")} onClick={handleNavClick}>
               <span role="img" aria-label="Alunos">🎓</span> 
               {language === "english" ? "Students" : "Alunos"}
             </Link>
           )}
 
           {hasPermission('can_access_subjects') && (
-            <Link to="/subjects" className={isActive("/subjects")}>
+            <Link to="/subjects" className={isActive("/subjects")} onClick={handleNavClick}>
               <span role="img" aria-label="Atividades">📚</span> 
               {language === "english" ? "Subjects" : "Atividades"}
             </Link>
           )}
 
           {hasPermission('can_access_documents') && (
-            <Link to="/documents" className={isActive("/documents")}>
+            <Link to="/documents" className={isActive("/documents")} onClick={handleNavClick}>
               <span role="img" aria-label="Documentos">📄</span>
               {language === "english" ? "Documents" : "Documentos"}
             </Link>
           )}
 
           {hasPermission('can_access_storage') && (
-            <Link to="/storage" className={isActive("/storage")}>
+            <Link to="/storage" className={isActive("/storage")} onClick={handleNavClick}>
               <span role="img" aria-label="Estoque">📦</span>
               {language === "english" ? "Storage" : "Estoque"}
             </Link>
           )}
+
+          {/* Botão de Internacionalização */}
+          <div className="sidebar-language-toggle">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Flag_of_Brazil.svg/960px-Flag_of_Brazil.svg.png"
+              alt="Português"
+            />
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                onChange={handleLanguageChange}
+                checked={isLanguageChecked} 
+              />
+              <span className="slider round"></span>
+            </label>
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/a/a4/Flag_of_the_United_States.svg"
+              alt="English"
+            />
+          </div>
 
           <Link
             to="/"
