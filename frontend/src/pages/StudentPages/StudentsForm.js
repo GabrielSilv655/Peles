@@ -17,7 +17,6 @@ export default function StudentsForm() {
     const [phoneError, setPhoneError] = useState("");
     const [secondPhoneError, setSecondPhoneError] = useState("");
     const [cpfError, setCpfError] = useState("");
-    const [rgError, setRgError] = useState("");
     const [emailError, setEmailError] = useState("");
     const [childAge, setChildAge] = useState("");
     const [ageError, setAgeError] = useState("");
@@ -379,17 +378,6 @@ export default function StudentsForm() {
         }
     };
 
-    const formatRG = (rg) => {
-        const cleanRG = rg.replace(/\D/g, '');
-        if (cleanRG.length > 11) {
-            return rg.substring(0, 14); // Limita a 11 dígitos com formatação
-        }
-        if (cleanRG.length >= 8) {
-            return cleanRG.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,3}).*/, '$1.$2.$3-$4');
-        }
-        return cleanRG;
-    };
-
     const handleCPFChange = (e) => {
         const cpfValue = e.target.value;
         const formattedCPF = formatCPF(cpfValue);
@@ -407,9 +395,8 @@ export default function StudentsForm() {
 
     const handleRGChange = (e) => {
         const rgValue = e.target.value;
-        const formattedRG = formatRG(rgValue);
         
-        setStudent({ ...student, RG: formattedRG });
+        setStudent({ ...student, RG: rgValue });
     };
 
     const handleEmailChange = (e) => {

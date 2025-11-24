@@ -37,7 +37,7 @@ const Parent = sequelize.define("parent", {
   }
 }, {
   tableName: 'parent',
-  timestamps: true
+  timestamps: false
 });
 
 module.exports = Parent; 
