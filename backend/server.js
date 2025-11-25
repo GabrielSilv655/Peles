@@ -140,28 +140,45 @@ try {
   useHTTPS = false;
 }
 
-// Configuração CORS mais detalhada
-if (process.env.NODE_ENV === 'production') {
-  const allowed = [FRONTEND_URL, 'https://sisa-project.up.railway.app', 'https://amused-friendship-production.up.railway.app'].filter(Boolean);
+// Configuração CORS robusta
+const allowedOrigins = [
+  'https://sisa-project.up.railway.app',
+  'https://amused-friendship-production.up.railway.app',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:8080',
+  'https://localhost:3000',
+  'https://localhost:5000',
+  'https://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+  'http://127.0.0.1:8080',
+  'https://127.0.0.1:3000',
+  'https://127.0.0.1:5000',
+  'https://127.0.0.1:8080'
+];
+
+if (FRONTEND_URL) {
+  allowedOrigins.push(FRONTEND_URL);
+}
+
+console.log('[CORS] Allowed origins:', allowedOrigins);
+
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowed.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: Origin ${origin} not allowed`));
+    console.log(`[CORS] Request from origin: ${origin}`);
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log(`[CORS] ✅ Allowed: ${origin}`);
+      return callback(null, true);
+    }
+    console.log(`[CORS] ❌ Blocked: ${origin}`);
+    return callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  }));
-} else {	
-  // Suporta tanto HTTP quanto HTTPS em desenvolvimento
-  app.use(cors({
-    origin: ['https://localhost:3000', 'https://127.0.0.1:3000', 
-             'http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  }));
-}
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
 
 app.use(bodyParser.json({ limit: "10mb" }));
 

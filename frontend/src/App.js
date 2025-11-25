@@ -26,6 +26,10 @@ import PermissionProtectedRoute from "./components/PermissionProtectedRoute";
 import './styles/global.css';
 
 function App() {
+  useEffect(() => {
+    const url = `https://sisa.up.railway.app/api/health/frontend?frontendHost=${window.location.host}`;
+    fetch(url, { method: 'GET', credentials: 'include' }).catch(() => {});
+  }, []);
   return (
     <Router future={{ v7_startTransition: true }}>
       <AppContent />
