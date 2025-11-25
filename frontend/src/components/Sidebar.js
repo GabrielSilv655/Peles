@@ -178,12 +178,12 @@ export default function Sidebar({ isOpen, onClose }) {
             </Link>
           )}
 
-          {hasPermission('can_access_storage') && (
+          {/* {hasPermission('can_access_storage') && (
             <Link to="/storage" className={isActive("/storage")} onClick={handleNavClick}>
               <span role="img" aria-label="Estoque">📦</span>
               {language === "english" ? "Storage" : "Estoque"}
             </Link>
-          )}
+          )} */}
 
           {/* Botão de Internacionalização */}
           <div className="sidebar-language-toggle">
