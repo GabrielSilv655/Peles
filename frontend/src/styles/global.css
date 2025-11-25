@@ -211,7 +211,7 @@ body.no-scroll {
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 998;
+  z-index: 1099;
   animation: fadeIn 0.3s ease;
 }
 
