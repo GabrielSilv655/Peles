@@ -91,16 +91,18 @@ body.no-scroll {
 }
 
 .logo-nav-btn {
-  background: transparent;
+  background: var(--primary-dark);
+  margin-top: 18px;
   border: none;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  width: 60px;
-  height: 60px;
+  width: 280px;
+  height: 55px;
   transform: translateY(-10px);
+
 }
 
 .logo-nav-btn:hover {
@@ -129,9 +131,9 @@ body.no-scroll {
 }
 
 .logo-nav-btn img {
-  width: 100px;
-  height: 100px;
-  margin-top: 10px;
+  width: 87px;
+  height: 87px;
+  margin-top: -10px;
   object-fit: contain;
 }
 
@@ -870,6 +872,11 @@ h2 {
 
   .logout-btn {
     margin-bottom: 50px;
+  }
+
+  .logo-nav-btn {
+    width: 80px;
+    background-color: transparent;
   }
 }
 
