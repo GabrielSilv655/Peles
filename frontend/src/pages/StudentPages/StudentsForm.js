@@ -80,7 +80,7 @@ export default function StudentsForm() {
         neighborhood: "",
         cep: "",
         notes: "",
-        active: true,
+        active: false,
         createdAt: Date.now(),
         updatedAt: Date.now()
     });

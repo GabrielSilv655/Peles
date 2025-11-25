@@ -537,7 +537,7 @@ export default function Students() {
                           : language === "english" ? "Inactive" : "Inativo"
                         }
                   className={`status-badge ${student.active ? 'active' : 'inactive'}`}
-                  onClick={() => changeStudentStatus(index)}
+                  //onClick={() => changeStudentStatus(index)}
                 />
               </div>
             </div>
