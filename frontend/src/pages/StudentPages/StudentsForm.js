@@ -1381,7 +1381,7 @@ export default function StudentsForm() {
                     )}
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px solid #e0e0e0' }}>
                     <label htmlFor="is_on_school">{language === "english" ? "Is on School Actually?" : "Esta na Escola Atualmente?"}</label>
                     <div className="radio-group">
                         <input 
@@ -1457,7 +1457,7 @@ export default function StudentsForm() {
                         </div>
                     </>
                 )}
-                <div className="form-group">
+                <div className="form-group" style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px solid #e0e0e0' }}>
                     <label htmlFor="cep">CEP</label>
                     <input 
                         id="cep"
@@ -1522,7 +1522,7 @@ export default function StudentsForm() {
                         </span>
                     )}
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginTop: '30px', paddingTop: '20px', borderTop: '2px solid #e0e0e0' }}>
                     <label htmlFor="notes">{language === "english" ? "Additional Notes" : "Informações Adicionais"}</label>
                     <textarea 
                         id="notes"
