@@ -115,7 +115,7 @@ body.no-scroll {
 .logo-nav-btn:focus {
   outline: none;
   box-shadow: none;
-  background-color: transparent !important;
+  background-color: var(--primary-dark) !important;
 }
 
 .logo-nav-btn:active {
