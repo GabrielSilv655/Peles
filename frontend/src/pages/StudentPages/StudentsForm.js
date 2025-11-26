@@ -809,22 +809,23 @@ export default function StudentsForm() {
                 responsible_parent_id: responsibleParentId
             };
 
-            showConfirmation({
-                type: 'edit',
-                title: language === "english" ? "Edit Student" : "Editar Aluno",
-                message: language === "english" 
-                  ? `Do you want to edit student "${student?.name}"?`
-                  : `Deseja editar o aluno "${student?.name}"?`,
-                confirmText: language === "english" ? "Edit" : "Editar",
-                onConfirm: async () => {
-                    if (id) {
+            if(id){
+                showConfirmation({
+                    type: 'edit',
+                    title: language === "english" ? "Edit Student" : "Editar Aluno",
+                    message: language === "english" 
+                      ? `Do you want to edit student "${student?.name}"?`
+                      : `Deseja editar o aluno "${student?.name}"?`,
+                    confirmText: language === "english" ? "Edit" : "Editar",
+                    onConfirm: async () => {
                         await API.put(`/students/${id}`, studentData);
-                    } else {
-                        await API.post("/students", studentData);
+                        navigate("/students");
                     }
-                    navigate("/students");
-                }
-            });
+                });
+            } else {
+                await API.post("/students", studentData);
+                navigate("/students");
+            }
         } catch (err) {
             console.error("Erro ao salvar parentes:", err);
             alert(language === "english" ? "Error saving parents" : "Erro ao salvar parentes");
@@ -1346,9 +1347,12 @@ export default function StudentsForm() {
                                         <option value="">{language === "english" ? "Select degree of kinship" : "Selecione o grau de parentesco"}</option>
                                         <option value="Pai">{language === "english" ? "Father" : "Pai"}</option>
                                         <option value="Mãe">{language === "english" ? "Mother" : "Mãe"}</option>
-                                        <option value="Avô">{language === "english" ? "Grandfather/Grandmother" : "Avô/Avó"}</option>
-                                        <option value="Tio">{language === "english" ? "Uncle/Aunt" : "Tio/Tia"}</option>
-                                        <option value="Padrasto">{language === "english" ? "Stepfather/Stepmother" : "Padrasto/Madrasta"}</option>
+                                        <option value="Avô">{language === "english" ? "Grandfather" : "Avô"}</option>
+                                        <option value="Avó">{language === "english" ? "Grandmother" : "Avó"}</option>
+                                        <option value="Tio">{language === "english" ? "Uncle" : "Tio"}</option>
+                                        <option value="Tia">{language === "english" ? "Aunt" : "Tia"}</option>
+                                        <option value="Padrasto">{language === "english" ? "Stepfather" : "Padrasto"}</option>
+                                        <option value="Madrasta">{language === "english" ? "Stepmother" : "Madrasta"}</option>
                                         <option value="Responsável Legal">{language === "english" ? "Legal Guardian" : "Responsável Legal"}</option>
                                         <option value="Tutor">{language === "english" ? "Tutor" : "Tutor"}</option>
                                         <option value="Outro">{language === "english" ? "Other" : "Outro"}</option>

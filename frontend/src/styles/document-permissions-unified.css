@@ -511,6 +511,7 @@
   border-radius: 6px;
   background: var(--surface-color);
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .granular-item:hover {
