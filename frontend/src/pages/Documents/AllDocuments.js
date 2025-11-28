@@ -173,10 +173,21 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
   const handlePreview = async (document) => {
     setPreviewDocument(document);
     setLoadingPreview(true);
-    
+
     try {
-      const response = await API.get(`/all-documents/${document.id}/preview`);
-      setPreviewHtml(response.data.html);
+      // Se o arquivo original for PDF, exibir via <embed> diretamente
+      const isPdf = /\.pdf$/i.test(document.original_filename || '');
+      if (isPdf) {
+        const fileResponse = await API.get(`/all-documents/${document.id}/download?format=pdf`, { responseType: 'blob' });
+        const blob = new Blob([fileResponse.data], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const html = `<div style="width:100%;height:80vh"><embed src="${url}" type="application/pdf" width="100%" height="100%" /></div>`;
+        setPreviewHtml(html);
+      } else {
+        // Mantém preview HTML para DOCX
+        const response = await API.get(`/all-documents/${document.id}/preview`);
+        setPreviewHtml(response.data.html);
+      }
     } catch (err) {
       console.error('Erro ao carregar preview:', err);
       setPreviewHtml('<p>Erro ao carregar preview do documento</p>');
@@ -310,17 +321,20 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
   };
 
   const handleFileSelect = (selectedFile) => {
-    if (selectedFile && selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const isDocx = selectedFile && selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const isPdf = selectedFile && selectedFile.type === 'application/pdf';
+
+    if (selectedFile && (isDocx || isPdf)) {
       setFile(selectedFile);
       if (!name) {
-        let baseName = selectedFile.name.replace(/\.docx$/i, '');
+        let baseName = selectedFile.name.replace(/\.(docx|pdf)$/i, '');
         baseName = sanitizeInput(baseName).slice(0, NAME_MAX);
         setName(baseName);
         setNameError(hasMaliciousPattern(selectedFile.name) ? (language === 'english' ? 'Suspicious content detected in file name' : 'Conteúdo suspeito detectado no nome do arquivo') : '');
       }
       setError('');
     } else {
-      setError('Por favor, selecione um arquivo DOCX válido');
+      setError('Por favor, selecione um arquivo DOCX ou PDF válido');
       setFile(null);
     }
   };
@@ -595,7 +609,7 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
                       {language === "english" ? "or Drag and Drop" : "ou Arraste e Solte"}
                     </span>
                   </div>
-                  <p className="upload-hint">{language === "english" ? "Only DOCX files up to 10MB" : "Apenas arquivos DOCX até 10MB"}</p>
+                  <p className="upload-hint">{language === "english" ? "DOCX or PDF files up to 10MB" : "Arquivos DOCX ou PDF até 10MB"}</p>
                 </div>
               )}
               <input
@@ -603,7 +617,7 @@ export default function AllDocuments({ canEdit = false, canUpload = false, canDe
                 name="file-upload"
                 type="file"
                 className="file-input"
-                accept=".docx"
+                accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
                 onChange={(e) => handleFileSelect(e.target.files[0])}
               />
             </div>

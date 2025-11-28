@@ -25,10 +25,14 @@ const upload = multer({
   },
   fileFilter: function (req, file, cb) {
     console.log('Verificando arquivo:', file.originalname, 'MIME:', file.mimetype);
-    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const allowed = [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf'
+    ];
+    if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas arquivos DOCX são permitidos'), false);
+      cb(new Error('Apenas arquivos DOCX ou PDF são permitidos'), false);
     }
   }
 });
@@ -81,7 +85,7 @@ const createDocument = async (req, res) => {
     console.log('Dados do body:', req.body);
     
     if (!req.file) {
-      return res.status(400).json({ message: 'Arquivo DOCX é obrigatório' });
+      return res.status(400).json({ message: 'Arquivo DOCX ou PDF é obrigatório' });
     }
 
     const { name, description } = req.body;
@@ -96,7 +100,7 @@ const createDocument = async (req, res) => {
       return res.status(500).json({ message: 'Erro ao salvar arquivo' });
     }
 
-    // Verificar se o arquivo é um DOCX válido
+    // Verificar se o arquivo é válido (DOCX ou PDF)
     const buffer = fs.readFileSync(req.file.path);
     if (buffer.length === 0) {
       console.error('Arquivo está vazio');
@@ -104,16 +108,29 @@ const createDocument = async (req, res) => {
       return res.status(400).json({ message: 'Arquivo está vazio' });
     }
 
-    // Verificar assinatura ZIP (DOCX é um arquivo ZIP)
-    if (buffer[0] !== 0x50 || buffer[1] !== 0x4B) {
-      console.error('Arquivo não é um ZIP válido (DOCX)');
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: 'Arquivo não é um DOCX válido' });
+    const isDocx = req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const isPdf = req.file.mimetype === 'application/pdf';
+
+    if (isDocx) {
+      // Verificar assinatura ZIP (DOCX é um arquivo ZIP)
+      if (buffer[0] !== 0x50 || buffer[1] !== 0x4B) {
+        console.error('Arquivo não é um ZIP válido (DOCX)');
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: 'Arquivo não é um DOCX válido' });
+      }
+    } else if (isPdf) {
+      // Verificação simples de PDF: começa com %PDF
+      if (!(buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46)) {
+        console.error('Arquivo não é um PDF válido');
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: 'Arquivo não é um PDF válido' });
+      }
     }
 
     console.log('Arquivo validado com sucesso:', {
       path: req.file.path,
       size: buffer.length,
+      mimetype: req.file.mimetype,
       signature: buffer.slice(0, 4)
     });
 
@@ -127,7 +144,8 @@ const createDocument = async (req, res) => {
       file_size: req.file.size,
       created_by: req.user?.id || 1,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      mime_type: req.file.mimetype
     };
 
     allDocuments.push(document);
@@ -197,6 +215,12 @@ const previewDocument = async (req, res) => {
     console.log('Tamanho do arquivo:', buffer.length, 'bytes');
     console.log('Primeiros 4 bytes:', buffer.slice(0, 4));
     
+    // Se for PDF, não converte; frontend fará embed via blob
+    const isPdf = (document.mime_type === 'application/pdf') || /\.pdf$/i.test(document.original_filename || '');
+    if (isPdf) {
+      return res.json({ html: '<p>Preview de PDF não é suportado neste endpoint.</p>' });
+    }
+
     // Verificar se é um ZIP válido (DOCX)
     if (buffer[0] !== 0x50 || buffer[1] !== 0x4B) {
       console.error('Arquivo não é um ZIP válido');
@@ -251,18 +275,29 @@ const downloadDocument = async (req, res) => {
     console.log('Enviando arquivo para download:', document.file_path, 'formato:', format);
 
     if (format === 'docx') {
-      // Download DOCX original
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      // Download DOCX original (ou qualquer arquivo original que não seja PDF)
+      res.setHeader('Content-Type', document.mime_type || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.original_filename)}"`);
       
       const buffer = fs.readFileSync(document.file_path);
       res.setHeader('Content-Length', buffer.length);
       res.end(buffer, 'binary');
       
-      console.log('Download DOCX concluído com sucesso');
+      console.log('Download de arquivo original concluído com sucesso');
     } else if (format === 'pdf') {
-      // Gerar PDF usando mammoth + puppeteer
-      await generatePDFFromDocument(document, res);
+      const isOriginalPdf = (document.mime_type === 'application/pdf') || /\.pdf$/i.test(document.original_filename || '');
+      if (isOriginalPdf) {
+        // Retorna o PDF original
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.original_filename)}"`);
+        const buffer = fs.readFileSync(document.file_path);
+        res.setHeader('Content-Length', buffer.length);
+        res.end(buffer, 'binary');
+        console.log('Download PDF original concluído com sucesso');
+      } else {
+        // Gerar PDF a partir do DOCX
+        await generatePDFFromDocument(document, res);
+      }
     } else {
       res.status(400).json({ message: 'Formato não suportado. Use "docx" ou "pdf".' });
     }
